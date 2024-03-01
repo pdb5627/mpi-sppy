@@ -22,9 +22,7 @@ fullcomm = mpi.COMM_WORLD
 rank = fullcomm.Get_rank()
 n_proc = fullcomm.Get_size()
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='(%(threadName)-10s) %(message)s',
-                    )
+logger = logging.getLogger(__name__)
 
 def worker_bee(synchronizer, buzz=1e6, sting=100.0):
     """
@@ -82,23 +80,21 @@ def worker_bee(synchronizer, buzz=1e6, sting=100.0):
            == synchronizer.sleep_secs[0]:
             old_sleep[0] = synchronizer.sleep_secs[0]
             synchronizer.sleep_secs[0] /= 10
-            logging.debug ("TRYING to reduce sleep to {} from rank={}".\
-                   format(synchronizer.sleep_secs[0], rank))
+            logger.debug(f"TRYING to reduce sleep to {synchronizer.sleep_secs[0]} from {rank=}")
         elif old_sleep[0] != synchronizer.sleep_secs[0]:
             synchronizer.sleep_secs[0] = old_sleep[0]
-            logging.debug ("putting sleep back to {} from rank={}".\
-                   format(synchronizer.sleep_secs[0], rank))
+            logger.debug(f"Putting sleep back to {synchronizer.sleep_secs[0]} from {rank=}")
 
         localiterstodo = int(np.random.uniform() * buzz / n_proc)
         if rank == 0:
-            logging.debug("**rank 0: iterstodo="+str(localiterstodo))
+            logger.debug(f"**rank 0: iterstodo={localiterstodo}")
         for i in range(localiterstodo):
             local_sum_sofar += np.random.normal(0, sting)
             
         local_iters_sofar += localiterstodo
         if rank == 0:
-            logging.debug("rank 0: iterstodo {} iters sofar {} sum_so_far {}="\
-                          .format(localiterstodo, local_iters_sofar, local_sum_sofar))
+            logger.debug(f"rank 0: iterstodo {localiterstodo} iters sofar "
+                         f"{local_iters_sofar} sum_so_far {local_sum_sofar}")
         local_concat["FirstReduce"]["ROOT"][0] = local_iters_sofar
         local_concat["FirstReduce"]["ROOT"][1] = local_sum_sofar
         local_concat["FirstReduce"]["ROOT"][2+rank] \
@@ -112,19 +108,20 @@ def worker_bee(synchronizer, buzz=1e6, sting=100.0):
         global_iters_sofar = global_concat["FirstReduce"]["ROOT"][0]
         global_sum = global_concat["FirstReduce"]["ROOT"][1]
         if rank == 0:
-            logging.debug("   rank 0: global_iters {} global_sum_so_far {}"\
-                          .format(global_iters_sofar, global_sum))
+            logger.debug(f"   rank 0: global_iters {global_iters_sofar} "
+                         f"global_sum_so_far {global_sum}")
 
     # tell the listener threads to shut down
     synchronizer.quitting = 1
 
     if rank == 0:
-        print ("Rank 0 termination")
-        print ("Based on {} iterations, the average was {}".\
-               format(global_iters_sofar, global_sum / global_iters_sofar))
-        print ("In case you are curious:\n rank \t last report *in* (sec)")
+        logger.info("Rank 0 termination")
+        logger.info(f"Based on {global_iters_sofar} iterations, "
+                    f"the average was {global_sum / global_iters_sofar}")
+        logger.info("In case you are curious:")
+        logger.info("rank \t last report *in* (sec)")
         for r in range(n_proc):
-            print (r, "\t", global_concat["FirstReduce"]["ROOT"][2+r])
+            logger.info(f"{r}\t{global_concat["FirstReduce"]["ROOT"][2+r]}")
             
 
 #=================================
@@ -142,8 +139,8 @@ def side_gig(synchro, msg = None):
                    something (e.g., an object) that is modified
     """
     if synchro._rank == 0:
-        print ("   (rank 0) ^*^* side_gig msg=", str(msg))
-    logging.debug("enter side gig on rank %d" % rank)
+        logger.info("   (rank 0) ^*^* side_gig msg=" + str(msg))
+    logger.debug("enter side gig on rank %d" % rank)
 
     # Just to demonstrate how to do it, we will just return if nothing
     # changed in the first reduce.
@@ -165,10 +162,10 @@ def side_gig(synchro, msg = None):
             allthesame = False
             break
     if allthesame:
-        logging.debug("Skipping intermediate side_gig on rank %d" % rank)
+        logger.debug("Skipping intermediate side_gig on rank %d" % rank)
         return
 
-    logging.debug("Doing intermediate side_gig on rank %d" % rank)
+    logger.debug(f"Doing intermediate side_gig on {rank=}")
     # It is OK for us to directly at global_data on the synchro because
     # the side_gig is "part of" the listener, the listener has the lock,
     # and only the listener updates global_data on the syncrho.
@@ -176,9 +173,8 @@ def side_gig(synchro, msg = None):
 
     # this particular side_gig is very silly
     lastsideresult = synchro.global_data["SecondReduce"]["ROOT"]
-    logging.debug("In case you are curious, before this listener call to"\
-                  +"side_gig, the value of the secondreduce was {} on rank {}"\
-                  .format(lastsideresult, rank))
+    logger.debug("In case you are curious, before this listener call to side_gig, "
+                 f"the value of the secondreduce was {lastsideresult} on {rank=}")
     
     # dst, src
     np.copyto(side_gig.prev_red_prev_concat[cname],
@@ -228,7 +224,7 @@ np.random.seed(seed)
 # Note: at this point the first reduce is the only reduce
 Lens = collections.OrderedDict({"FirstReduce": {"ROOT": 2+n_proc}})
 if rank == 0:
-    logging.debug("iters %d, sleep %f, seed %d".format((iters, sleep, seed)))
+    logger.debug(f"{iters=}, {sleep=}, {seed=}")
 # "ROOT" is required to be the name of the global comm
 synchronizer = listener_util.Synchronizer(comms = {"ROOT": fullcomm},
                                        Lens = Lens,
@@ -242,8 +238,8 @@ synchronizer.run(args, kwargs)
 
 ### now demo the use of a listener side gig between two reductions ###
 if rank == 0:
-    print ("testing side gig")
-logging.debug("testing side gig on rank %d" % rank)
+    logger.info("testing side gig")
+logger.debug(f"testing side gig on {rank=}")
 
 kwargs = {"msg": "Oh wow, the side gig is running"}
 Lens = collections.OrderedDict({"FirstReduce": {"ROOT": 2+n_proc},

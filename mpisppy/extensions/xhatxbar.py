@@ -3,9 +3,14 @@
 # Try xbar as xhat.
 
 
+import logging
 import mpisppy.utils.sputils as sputils
 import mpisppy.extensions.xhatbase
 import mpisppy.phbase as phbase
+
+
+logger = logging.getLogger(__name__)
+
 
 class XhatXbar(mpisppy.extensions.xhatbase.XhatBase):
     """
@@ -68,7 +73,7 @@ class XhatXbar(mpisppy.extensions.xhatbase.XhatBase):
         """
         def _vb(msg):
             if verbose and self.cylinder_rank == 0:
-                print("  xhat_xbar: " + msg)
+                logger.info("  xhat_xbar: " + msg)
 
         obj = None
         sname = None
@@ -94,8 +99,9 @@ class XhatXbar(mpisppy.extensions.xhatbase.XhatBase):
             self.opt._restore_nonants()
             return None
         else:
+            # TODO: src_rank in the following line is undefined???
             if verbose and src_rank == self.cylinder_rank:
-                print("   Feasible xhat found at xbar")
+                logger.info("   Feasible xhat found at xbar")
             obj = self.opt.Eobjective(verbose=verbose)
             if restore_nonants:
                 self._restore_nonants()

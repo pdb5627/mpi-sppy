@@ -4,10 +4,14 @@
 # Adapted from the PySP extension adaptive_rho_converger, authored by Gabriel Hackebeil
 
 import math
+import logging
 import mpisppy.extensions.extension
 
 import numpy as np
 import mpisppy.MPI as MPI
+
+
+logger = logging.getLogger(__name__)
 
 _norm_rho_defaults = { 'convergence_tolerance' : 1e-4,
                            'rho_decrease_multiplier' : 2.0,
@@ -41,7 +45,7 @@ class NormRhoUpdater(mpisppy.extensions.extension.Extension):
         self._set_options()
         self._prev_avg = {}
         self.ph._mpisppy_norm_rho_update_inuse = True  # allow NormRhoConverger
-        
+
     def _set_options(self):
         options = self.norm_rho_options
         for attr_name, opt_name in _attr_to_option_name_map.items():
@@ -144,17 +148,28 @@ class NormRhoUpdater(mpisppy.extensions.extension.Extension):
                     if self._verbose and ph.cylinder_rank == 0 and action is not None:
                         if first:
                             first = False
-                            first_line = ("Updating rho values:\n%21s %40s %16s %16s %16s"
-                                          % ("Action",
-                                             "Variable",
-                                             "Primal Residual",
-                                             "Dual Residual",
-                                             "New Rho"))
-                            print(first_line)
+                            logger.info("Updating rho values:")
+                            logger.info(
+                                "%21s %40s %16s %16s %16s"
+                                % (
+                                    "Action",
+                                    "Variable",
+                                    "Primal Residual",
+                                    "Dual Residual",
+                                    "New Rho",
+                                )
+                            )
                         if first_scenario:
-                            print("%21s %40s %16g %16g %16g"
-                                  % (action, s._mpisppy_data.nonant_indices[ndn_i].name,
-                                     primal_resid, dual_resid, rho.value))
+                            logger.info(
+                                "%21s %40s %16g %16g %16g"
+                                % (
+                                    action,
+                                    s._mpisppy_data.nonant_indices[ndn_i].name,
+                                    primal_resid,
+                                    dual_resid,
+                                    rho.value,
+                                )
+                            )
                 first_scenario = False
 
     def enditer(self):

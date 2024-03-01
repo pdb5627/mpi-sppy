@@ -9,11 +9,16 @@
 - TBD as of March 2023: track oscillations, which are important for MIPs (could compare two moving_stddevs)
 """
 
+import logging
 import numpy as np
 import pandas as pd
 import mpisppy.opt.ph
 import pyomo.environ as pyo
 import mpisppy.MPI as MPI
+
+
+logger = logging.getLogger(__name__)
+
 
 class WTracker():
     """
@@ -114,7 +119,7 @@ class WTracker():
         cvname = f"{file_prefix}_cv_iter{self.ph_iter}_rank{self.PHB.global_rank}.csv"
 
         if self.PHB.cylinder_rank == 0:
-            print(f"Writing (a) W tracker report(s) to files with names like {fname}, {stname}, and {cvname}")
+            logger.info(f"Writing (a) W tracker report(s) to files with names like {fname}, {stname}, and {cvname}")
         with open(fname, "w") as fil:
             fil.write(f"Moving Stats W Report at iteration {self.ph_iter}\n")
             fil.write(f"    {len(self.varnames)} nonants\n"
@@ -198,7 +203,7 @@ class WTracker():
             return (f"WTRACKER WARNING: Not enough iterations ({cI}) for window len {wlen} and"
                    f" offsetback {offsetback}\n")
         else:
-            print(f"{np.shape(self.local_Ws)}")
+            logger.debug(f"{np.shape(self.local_Ws)=}")
             wlist = dict()
             for i in range(fi+1, li+1):
                 for sname, _ in self.PHB.local_scenarios.items():
@@ -231,8 +236,8 @@ class WTracker():
         li = cI - offsetback
         fi = max(1, li - wlen)
         if li - fi < wlen:
-            print(f"WTRACKER WARNING: Not enough iterations ({cI}) for window len {wlen} and"
-                  f" offsetback {offsetback}\n")
+            logger.warning(f"WTRACKER WARNING: Not enough iterations ({cI}) for window len {wlen} and"
+                           f" offsetback {offsetback}\n")
             pass
         else:
             wlist = dict()
@@ -251,8 +256,8 @@ class WTracker():
         li = cI - offsetback
         fi = max(1, li - wlen)
         if li - fi < wlen:
-            print(f"WTRACKER WARNING: Not enough iterations ({cI}) for window len {wlen} and"
-                  f" offsetback {offsetback}\n")
+            logger.warning(f"WTRACKER WARNING: Not enough iterations ({cI}) for window len {wlen} and"
+                           f" {offsetback=}\n")
             pass
         else:
             for idx, varname in enumerate(self.varnames):

@@ -9,9 +9,14 @@
 
 import datetime as dt
 import os
+import logging
 import pyomo.environ as pyo
 import mpisppy.extensions.xhatbase
 from mpisppy.utils.sputils import find_active_objective
+
+
+logger = logging.getLogger(__name__)
+
 
 class Diagnoser(mpisppy.extensions.xhatbase.XhatBase):
     """
@@ -23,8 +28,7 @@ class Diagnoser(mpisppy.extensions.xhatbase.XhatBase):
         dirname = ph.options["diagnoser_options"]["diagnoser_outdir"]
         if os.path.exists(dirname):
             if ph.cylinder_rank == 0:
-                print ("Shutting down because Diagnostic directory exists:",
-                       dirname)
+                logger.error(f"Shutting down because Diagnostic directory exists: {dirname}")
             quit()
         if ph.cylinder_rank == 0:
             os.mkdir(dirname) # just let it crash

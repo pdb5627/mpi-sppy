@@ -1,7 +1,11 @@
 # Utility to allow for a heirarchy of solvers and options
 # and perhaps utilities to support special options like threads and mipgap
 
+import logging
 import mpisppy.utils.sputils as sputils
+
+
+logger = logging.getLogger(__name__)
 
 """
 There is a naming convention that has a root (e.g., PH or Lagranger)
@@ -63,6 +67,6 @@ def solver_specification(cfg, prefix="", name_required=True):
     else:
         if name_required:
             # Leaving in underscores even though it might confuse command line users
-            print(f"\nsolver name arguments checked in Config object = {idx_list}\n")
+            logger.error(f"solver name arguments checked in Config object = {idx_list}")
             raise RuntimeError(f"The Config object did not specify a solver")
     return sroot, solver_name, solver_options

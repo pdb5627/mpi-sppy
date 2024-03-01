@@ -19,8 +19,7 @@ from mpisppy import global_toc
 def profile(filename=None, comm=MPI.COMM_WORLD):
     pass
 
-logger = logging.getLogger('PHBase')
-logger.setLevel(logging.WARN)
+logger = logging.getLogger(__name__)
 
 #======================
 
@@ -31,7 +30,7 @@ def _Compute_Xbar(opt, verbose=False):
     Args:
         opt (phbase or xhat_eval object): object with the local scenarios
         verbose (boolean):
-            If True, prints verbose output.
+            If True, logs verbose output.
     """
 
     """
@@ -88,8 +87,7 @@ def _Compute_Xbar(opt, verbose=False):
 
     # set the xbar and xsqbar in all the scenarios
     for k,s in opt.local_scenarios.items():
-        logger.debug('  top of assign xbar loop for {} on rank {}'.\
-                     format(k, opt.cylinder_rank))
+        logger.debug(f"  top of assign xbar loop for {k} on rank {opt.cylinder_rank}")
         nlens = s._mpisppy_data.nlens
         for node in s._mpisppy_node_list:
             ndn = node.name
@@ -102,9 +100,10 @@ def _Compute_Xbar(opt, verbose=False):
                 s._mpisppy_model.xbars[(ndn,i)]._value = xbars[i]
                 s._mpisppy_model.xsqbars[(ndn,i)]._value = xsqbars[i]
                 if verbose: # and opt.cylinder_rank == 0:
-                    print ("cylinder rank, scen, node, var, xbar:",
-                           opt.cylinder_rank, k, ndn, node.nonant_vardata_list[i].name,
-                           pyo.value(s._mpisppy_model.xbars[(ndn,i)]))
+                    logger.debug("cylinder rank, scen, node, var, xbar:"
+                           f"{opt.cylinder_rank}, {k}, {ndn}, "
+                           f"{node.nonant_vardata_list[i].name}"
+                           f"{pyo.value(s._mpisppy_model.xbars[(ndn,i)])}")
 
 def _Compute_Wbar(opt, verbose=False, repair=True):
     """ Seldom used (mainly for diagnostics); gather  Wbar for each node.
@@ -112,7 +111,7 @@ def _Compute_Wbar(opt, verbose=False, repair=True):
     Args:
         opt (phbase or xhat_eval object): object with the local scenarios
         verbose (boolean):
-            If True, prints verbose output.
+            If True, logs verbose output.
         repair (boolean):
             If True, normalize the W values so EW = 0
 
@@ -157,8 +156,7 @@ def _Compute_Wbar(opt, verbose=False, repair=True):
 
     # check the Wbar
     for k,s in opt.local_scenarios.items():
-        logger.debug('  top of Wbar loop for {} on rank {}'.\
-                     format(k, opt.cylinder_rank))
+        logger.debug(f"  top of Wbar loop for {k} on rank {opt.cylinder_rank}")
         nlens = s._mpisppy_data.nlens
         for node in s._mpisppy_node_list:
             ndn = node.name
@@ -168,9 +166,9 @@ def _Compute_Wbar(opt, verbose=False, repair=True):
 
             for i in range(nlen):
                 if abs(Wbars[i]) > opt.E1_tolerance and opt.cylinder_rank == 0:
-                    print(f"EW={Wbars[i]} (should be zero) for {node.nonant_vardata_list[i].name}")
+                    logger.warning(f"EW={Wbars[i]} (should be zero) for {node.nonant_vardata_list[i].name}")
                     if repair:
-                        print(f"   repairing in {k}")
+                        logger.warning(f"   repairing in {k}")
                         s._mpisppy_model.W[(ndn,i)]._value -= Wbars[i]
  
 
@@ -288,7 +286,7 @@ class PHBase(mpisppy.spopt.SPOpt):
 
         Args:
             verbose (boolean):
-                If True, prints verbose output.
+                If True, logs verbose output.
         """
         _Compute_Xbar(self, verbose=verbose)
 
@@ -305,15 +303,15 @@ class PHBase(mpisppy.spopt.SPOpt):
             for ndn_i, nonant in s._mpisppy_data.nonant_indices.items():
 
                 ##if nonant._value == None:
-                ##    print(f"***_value is None for nonant var {nonant.name}")
+                ##    logger.error(f"***_value is None for nonant var {nonant.name}")
 
                 xdiff = nonant._value \
                         - s._mpisppy_model.xbars[ndn_i]._value
                 s._mpisppy_model.W[ndn_i]._value += pyo.value(s._mpisppy_model.rho[ndn_i]) * xdiff
                 if verbose and self.cylinder_rank == 0:
-                    print ("rank, node, scen, var, W", ndn_i[0], k,
-                           self.cylinder_rank, nonant.name,
-                           pyo.value(s._mpisppy_model.W[ndn_i]))
+                    logger.info(f"rank, node, scen, var, W {ndn_i[0]}, {k}, "
+                           f"{self.cylinder_rank}, {nonant.name}, "
+                           f"{pyo.value(s._mpisppy_model.W[ndn_i])}")
             # Special code for variable probabilities to mask W; rarely used.
             if s._mpisppy_data.has_variable_probability:
                 for ndn_i in s._mpisppy_data.nonant_indices:
@@ -406,7 +404,7 @@ class PHBase(mpisppy.spopt.SPOpt):
             didit += len(rholist)
             skipped += len(scenario._mpisppy_data.varid_to_nonant_index) - didit
         if verbose and self.cylinder_rank == 0:
-            print ("rho_setter set",didit,"and skipped",skipped)
+            logger.debug(f"rho_setter set {didit} and {skipped}")
 
 
     def _disable_prox(self):
@@ -463,11 +461,11 @@ class PHBase(mpisppy.spopt.SPOpt):
             Lagrangian bound solver.
         '''
         if (self.cylinder_rank == 0):
-            print('Warning: Lagrangian bounds might not be correct in certain '
+            logger.warning('Warning: Lagrangian bounds might not be correct in certain '
                   'cases where there are integers not subject to '
                   'non-anticipativity and those integers do not reach integrality.')
         if (verbose and self.cylinder_rank == 0):
-            print('Beginning post-solve Lagrangian bound computation')
+            logger.info('Beginning post-solve Lagrangian bound computation')
 
         if (self.W_disabled):
             self._reenable_W()
@@ -490,7 +488,7 @@ class PHBase(mpisppy.spopt.SPOpt):
         self._reenable_prox()
 
         if (verbose and self.cylinder_rank == 0):
-            print(f'Post-solve Lagrangian bound: {bound:.4f}')
+            logger.info(f'Post-solve Lagrangian bound: {bound:.4f}')
         return bound
 
 
@@ -785,7 +783,7 @@ class PHBase(mpisppy.spopt.SPOpt):
 
         def _vb(msg):
             if verbose and self.cylinder_rank == 0:
-                print("(rank0)", msg)
+                logger.info("(rank0) " + msg)
 
         self._PHIter = 0
         self._save_original_nonants()
@@ -799,7 +797,7 @@ class PHBase(mpisppy.spopt.SPOpt):
                  )
 
         if self.options["verbose"]:
-            print ("About to call PH Iter0 solve loop on rank={}".format(self.cylinder_rank))
+            logger.debug(f"About to call PH Iter0 solve loop on rank={self.cylinder_rank}")
         global_toc("Entering solve loop in PHBase.Iter0")
 
         self.solve_loop(solver_options=self.current_solver_options,
@@ -809,7 +807,7 @@ class PHBase(mpisppy.spopt.SPOpt):
                         verbose=verbose)
 
         if self.options["verbose"]:
-            print ("PH Iter0 solve loop complete on rank={}".format(self.cylinder_rank))
+            logger.debug(f"PH Iter0 solve loop complete on rank={self.cylinder_rank}")
 
         self._update_E1()  # Apologies for doing this after the solves...
         if (abs(1 - self.E1) > self.E1_tolerance):
@@ -852,11 +850,12 @@ class PHBase(mpisppy.spopt.SPOpt):
         self.trivial_bound = self.Ebound(verbose)
 
         if dprogress and self.cylinder_rank == 0:
-            print("")
-            print("After PH Iteration",self._PHIter)
-            print("Trivial bound =", self.trivial_bound)
-            print("PHBase Convergence Metric =",self.conv)
-            print("Elapsed time: %6.2f" % (time.perf_counter() - self.start_time))
+            elapsed_time = time.perf_counter() - self.start_time
+            logger.info("")
+            logger.info(f"After PH Iteration {self._PHIter}")
+            logger.info(f"Trivial bound = {self.trivial_bound}")
+            logger.info(f"PHBase Convergence Metric = {self.conv}")
+            logger.info(f"Elapsed time: {elapsed_time:6.2f}")
 
         if dconvergence_detail:
             self.report_var_values_at_rank0(header="Convergence detail:")
@@ -898,7 +897,7 @@ class PHBase(mpisppy.spopt.SPOpt):
             iteration_start_time = time.time()
 
             if dprogress:
-                global_toc(f"\nInitiating PH Iteration {self._PHIter}\n", self.cylinder_rank == 0)
+                global_toc(f"Initiating PH Iteration {self._PHIter}\n", self.cylinder_rank == 0)
 
             # Compute xbar
             #global_toc('Rank: {} - Before Compute_Xbar'.format(self.cylinder_rank), True)
@@ -956,11 +955,13 @@ class PHBase(mpisppy.spopt.SPOpt):
                 self.extobject.enditer_after_sync()
 
             if dprogress and self.cylinder_rank == 0:
-                print("")
-                print("After PH Iteration",self._PHIter)
-                print("Scaled PHBase Convergence Metric=",self.conv)
-                print("Iteration time: %6.2f" % (time.time() - iteration_start_time))
-                print("Elapsed time:   %6.2f" % (time.perf_counter() - self.start_time))
+                iteration_time = time.time() - iteration_start_time
+                elapsed_time = time.perf_counter() - self.start_time
+                logger.info("")
+                logger.info(f"After PH Iteration {self._PHIter}")
+                logger.info(f"Scaled PHBase Convergence Metric={self.conv}")
+                logger.info(f"Iteration time: {iteration_time:6.2f}")
+                logger.info(f"Elapsed time:   {elapsed_time:6.2f}")
 
             if dconvergence_detail:
                 self.report_var_values_at_rank0(header="Convergence detail:")
@@ -995,9 +996,9 @@ class PHBase(mpisppy.spopt.SPOpt):
         self.mpicomm.Barrier()
 
         if self.cylinder_rank == 0 and dprogress:
-            print("")
-            print("Invoking scenario reporting functions, if applicable")
-            print("")
+            logger.info("")
+            logger.info("Invoking scenario reporting functions, if applicable")
+            logger.info("")
 
         if self.scenario_denouement is not None:
             for sname,s in self.local_scenarios.items():
@@ -1006,9 +1007,9 @@ class PHBase(mpisppy.spopt.SPOpt):
         self.mpicomm.Barrier()
 
         if self.cylinder_rank == 0 and dprogress:
-            print("")
-            print("Invoking PH extension finalization, if applicable")
-            print("")
+            logger.info("")
+            logger.info("Invoking PH extension finalization, if applicable")
+            logger.info("")
 
         if have_extensions:
             self.extobject.post_everything()
@@ -1021,14 +1022,10 @@ class PHBase(mpisppy.spopt.SPOpt):
         self.mpicomm.Barrier()
 
         if dprogress and self.cylinder_rank == 0:
-            print("")
-            print("Current ***weighted*** E[objective] =", Eobj)
-            print("")
+            logger.info(f"Current ***weighted*** E[objective] = {Eobj}")
 
         if dtiming and self.cylinder_rank == 0:
-            print("")
-            print("Cumulative execution time=%5.2f" % (time.perf_counter()-self.start_time))
-            print("")
+            logger.info("Cumulative execution time=%5.2f" % (time.perf_counter()-self.start_time))
 
         return Eobj
 
@@ -1047,4 +1044,4 @@ class PHBase(mpisppy.spopt.SPOpt):
 
 
 if __name__ == "__main__":
-    print ("No main for PHBase")
+    print("No main for PHBase")

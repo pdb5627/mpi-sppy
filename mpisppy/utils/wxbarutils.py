@@ -33,9 +33,14 @@
 '''
 
 import os
+import logging
 import numpy as np
 import pyomo.environ as pyo
 import mpisppy.utils.sputils as sputils
+
+
+logger = logging.getLogger(__name__)
+
 
 ''' W utilities '''
 
@@ -200,7 +205,7 @@ def _parse_W_csv(fname, scenario_names_local, scenario_names_global, rank):
             
             if (sname not in scenario_names_global):
                 if (rank == 0):
-                    print('WARNING: Ignoring unknown scenario name', sname)
+                    logger.warning(f"WARNING: Ignoring unknown scenario name {sname}")
                 continue
             if (sname not in scenario_names_local):
                 continue
@@ -243,7 +248,7 @@ def _check_W(w_val_dict, PHB, rank):
                 'the following variables: ' + ', '.join(list(diff)))
         diff = vn_provided.difference(vn_model)
         if (diff):
-            print('Removing unknown variables:', ', '.join(list(diff)))
+            logger.warning('Removing unknown variables:' + ', '.join(list(diff)))
             for vname in diff:
                 w_val_dict[sname].pop(vname, None)
         
@@ -366,8 +371,8 @@ def _check_xbar(xbar_val_dict, PHB):
             'values in the provided input file: ' + ', '.join([v for v in set1]))
     set2 = provided_vars.difference(var_names)
     if (set2):
-        print('Ignoring the following variables values provided in the '
-              'input file: ' + ', '.join([v for v in set2]))
+        logger.warning('Ignoring the following variables values provided in the '
+                       'input file: ' + ', '.join([v for v in set2]))
 
 
 def ROOT_xbar_npy_serializer(PHB, fname):

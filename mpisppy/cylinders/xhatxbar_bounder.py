@@ -15,6 +15,7 @@ fullcomm = mpi.COMM_WORLD
 global_rank = fullcomm.Get_rank()
 fullcom_n_proc = fullcomm.Get_size()
 
+logger = logging.getLogger(__name__)
 
 def _attach_xbars(opt):
     # attach xbars to an Xhat_Eval object given as opt
@@ -73,25 +74,21 @@ class XhatXbarInnerBound(spoke.InnerBoundNonantSpoke):
         Entry point. Communicates with the optimization companion.
 
         """
-        dtm = logging.getLogger(f'dtm{global_rank}')
         verbose = self.opt.options["verbose"] # typing aid  
-        logging.debug("Enter xhatxbar main on rank {}".format(global_rank))
+        logger.debug(f"Enter xhatxbar main on {global_rank=}")
 
         xhatter = self.ib_prep()
 
         ib_iter = 1  # ib is for inner bound
         got_kill_signal = False
-        while (not self.got_kill_signal()):
-            logging.debug('   IB loop iter={} on global rank {}'.\
-                          format(ib_iter, global_rank))
-            # _log_values(ib_iter, self._locals, dtm)
+        while not self.got_kill_signal():
+            if (ib_iter - 1) % 10000 == 0:
+                logger.debug(f"   IB loop iter={ib_iter} on {global_rank=}")
+                logger.debug(f"   IB got from opt on {global_rank=}")
+            if self.new_nonants:
+                logger.debug(f"  and its new! on {global_rank=}")
+                logger.debug(f"  localnonants={self.localnonants}")
 
-            logging.debug('   IB got from opt on global rank {}'.\
-                          format(global_rank))
-            if (self.new_nonants):
-                logging.debug('  and its new! on global rank {}'.\
-                              format(global_rank))
-                logging.debug('  localnonants={}'.format(str(self.localnonants)))
                 self.opt._put_nonant_cache(self.localnonants)  # don't really need all caches
                 self.opt._restore_nonants()
                 innerbound = xhatter.xhat_tryit(restore_nonants=False)
@@ -100,10 +97,10 @@ class XhatXbarInnerBound(spoke.InnerBoundNonantSpoke):
 
             ib_iter += 1
 
-        dtm.debug(f'IB xbar thread ran {ib_iter} iterations\n')
+        logger.debug(f'IB xbar thread ran {ib_iter} iterations')
     
         # for debugging
-        #print("output .txt files for debugging in xhatxbar_bounder.py")
+        #logger.info("output .txt files for debugging in xhatxbar_bounder.py")
         #for k,s in self.opt.local_scenarios.items():
         #    fname = f"xhatxbar_model_{k}.txt"
         #    with open(fname, "w") as f:

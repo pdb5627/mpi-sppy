@@ -42,7 +42,7 @@ from .phutils import (BasicSymbolMap,
                       extractComponentIndices,
                      )
 
-logger = logging.getLogger("mpisppy.utils.pysp_model")
+logger = logging.getLogger(__name__)
 
 CUID_repr_version = 1
 
@@ -1182,7 +1182,7 @@ class ScenarioTree:
                 scenario_bundle_list.append(self._scenarios[random_list[i]].name)
 
             if verbose:
-                print("Downsampling scenario tree - retained %s "
+                logger.info("Downsampling scenario tree - retained %s "
                       "scenarios: %s"
                       % (len(scenario_bundle_list),
                          str(scenario_bundle_list)))

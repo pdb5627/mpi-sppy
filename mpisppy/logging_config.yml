@@ -1,0 +1,29 @@
+version: 1
+formatters:
+  default:
+    format: '[%(asctime)s] %(name)s (%(rank)s) - %(levelname)s - %(message)s'
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: default
+    stream: ext://sys.stdout
+    filters: [add_ranks]
+  log_file:
+    class: mpisppy.log.FileHandlerByRank
+    level: DEBUG
+    formatter: default
+    filename: mpisppy.log
+    delay: yes
+    filters: [add_ranks]
+filters:
+  add_ranks:
+    '()': ext://mpisppy.log.AddRanksAndElapsedTimeFilter
+loggers:
+  mpisppy:
+    propagate: no
+    handlers: [console, log_file]
+root:
+  level: WARNING
+  handlers: [console]
+disable_existing_loggers: no

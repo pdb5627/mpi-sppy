@@ -25,10 +25,14 @@
     Modified: DTM, Aug 2019
 '''
 
+import logging
 import mpisppy.utils.wxbarutils
 import os # For checking if files exist
 import mpisppy.extensions.extension
 import mpisppy.MPI as MPI
+
+logger = logging.getLogger(__name__)
+
 
 n_proc = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
@@ -48,21 +52,21 @@ class WXBarReader(mpisppy.extensions.extension.Extension):
             if (not os.path.exists(w_fname)):
                 if (rank == 0):
                     if (sep_files):
-                        print('Cannot find path', w_fname)
+                        logger.error(f"Cannot find path {w_fname}")
                     else:
-                        print('Cannot find file', w_fname)
+                        logger.error(f"Cannot find file {w_fname}")
                 quit()
 
         if ('init_Xbar_fname' in ph.options):
             x_fname = ph.options['init_Xbar_fname']
             if (not os.path.exists(x_fname)):
                 if (rank == 0):
-                    print('Cannot find file', x_fname)
+                    logger.error(f"Cannot find file {x_fname}")
                 quit()
 
         if (x_fname is None and w_fname is None and rank==0):
-            print('Warning: no input files provided to WXBarReader. '
-                  'W and Xbar will be initialized to their default values.')
+            logger.warning("Warning: no input files provided to WXBarReader. "
+                           "W and Xbar will be initialized to their default values.")
 
         self.PHB = ph
         self.cylinder_rank = rank

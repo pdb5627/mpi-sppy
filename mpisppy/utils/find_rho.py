@@ -33,12 +33,6 @@ import mpisppy.utils.rho_utils as rho_utils
 import mpisppy.phbase as phbase
 
 
-# Could also pass, e.g., sys.stdout instead of a filename
-"""mpisppy.log.setup_logger("mpisppy.utils.find_rho",
-                         "findrho.log",
-                         level=logging.CRITICAL)
-logger = logging.getLogger("mpisppy.utils.find_rho")"""
-
 ############################################################################
 
 

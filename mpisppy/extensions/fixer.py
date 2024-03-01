@@ -13,9 +13,14 @@ For iter0, if the lag is not None, do it.
 For other iters, use count;  None is also how you avoid.
 """
 
+import logging
 import pyomo.environ as pyo
 import mpisppy.utils.sputils as sputils
 import mpisppy.extensions.extension
+
+
+logger = logging.getLogger(__name__)
+
 
 def Fixer_tuple(xvar, th=None, nb=None, lb=None, ub=None):
     """ Somewhat self-documenting way to make a fixer tuple.
@@ -34,16 +39,13 @@ def Fixer_tuple(xvar, th=None, nb=None, lb=None, ub=None):
         tuple: a tuple to be appended to the iter0 or iterk list of tuples
     """
     if th is None and nb is None and lb is None and ub is None:
-        print ("warning: Fixer_tuple called for Var=", xvar.name,
-               "but no arguments were given")
+        logger.warning(f"warning: Fixer_tuple called for Var={xvar.name} but no arguments were given")
     if th is None:
         th = 0
     if nb is not None and lb is not None and nb < lb:
-        print ("warning: Fixer_tuple called for Var=", xvar.name,
-               "with nb < lb, which means lb will be ignored.")
+        logger.warning(f"warning: Fixer_tuple called for Var={xvar.name} with nb < lb, which means lb will be ignored.")
     if  nb is not None and ub is not None and nb < ub:
-        print ("warning: Fixer_tuple called for Var=", xvar.name,
-               "with nb < ub, which means ub will be ignored.")
+        logger.warning("warning: Fixer_tuple called for Var={xvar.name} with nb < ub, which means ub will be ignored.")
         
     return (id(xvar), th, nb, lb, ub)
 
@@ -86,7 +88,7 @@ class Fixer(mpisppy.extensions.extension.Extension):
                         self.iter0_threshold[(ndn, i)] = th
                     else:
                         if th != self.iter0_threshold[(ndn, i)]:
-                            print (s.name, ndn, i, th)
+                            logger.error(f"{s.name}, {ndn}, {i}, {th}")
                             raise RuntimeError("Attempt to vary iter0 fixer "+\
                                                "threshold across scenarios.")
             if self.fixer_tuples[s] is not None:
@@ -97,19 +99,19 @@ class Fixer(mpisppy.extensions.extension.Extension):
                         self.threshold[(ndn, i)] = th
                     else:
                         if th != self.threshold[(ndn, i)]:
-                            print (s.name, ndn, i, th)
+                            logger.error(f"{s.name}, {ndn}, {i}, {th}")
                             raise RuntimeError("Attempt to vary fixer "+\
                                                "threshold across scenarios")
 
     # verbose utility
     def _vb(self, str):
         if self.verbose and self.cylinder_rank == 0:
-            print ("(rank0) " + str)
+            logger.info("(rank0) " + str)
 
     # display progress utility
     def _dp(self, str):
         if (self.dprogress or self.verbose) and self.cylinder_rank == 0:
-            print ("(rank0) " + str)
+            logger.info("(rank0) " + str)
 
     def _update_fix_counts(self):
         nodesdone = []  # avoid multiple updates of a node's Vars
@@ -122,11 +124,11 @@ class Fixer(mpisppy.extensions.extension.Extension):
                 tolval = self.threshold[ndn_i]
                 tolval *= tolval  # the tol is on sqrt
                 if -diff < tolval and diff < tolval:
-                    ##print ("debug += diff, tolval", diff, tolval)
+                    ##logger.debug(f"debug += diff, tolval {diff}, {tolval}")
                     s._mpisppy_data.conv_iter_count[ndn_i] += 1
                 else:
                     s._mpisppy_data.conv_iter_count[ndn_i] = 0
-                    ##print ("debug reset fix diff, tolval", diff, tolval)
+                    ##logger.debug(f"debug reset fix diff, tolval {diff}, {tolval}")
                     
     def iter0(self, local_scenarios):
 
@@ -146,7 +148,7 @@ class Fixer(mpisppy.extensions.extension.Extension):
         raw_fixed_this_iter = 0   
         for sname,s in self.ph.local_scenarios.items():
             if self.iter0_fixer_tuples[s] is None:
-                print ("WARNING: No Iter0 fixer tuple for s.name=",s.name)
+                logger.warning(f"WARNING: No Iter0 fixer tuple for {s.name=}")
                 return
             
             if not have_bundles:
@@ -158,7 +160,7 @@ class Fixer(mpisppy.extensions.extension.Extension):
                 try:
                     (ndn, i) = s._mpisppy_data.varid_to_nonant_index[varid]
                 except:
-                    print ("Are you trying to fix a Var that is not nonant?")
+                    logger.error("Are you trying to fix a Var that is not nonant?")
                     raise
                 xvar = s._mpisppy_data.nonant_indices[ndn,i]
                 if not xvar.is_fixed():
@@ -167,10 +169,10 @@ class Fixer(mpisppy.extensions.extension.Extension):
                     tolval = self.iter0_threshold[(ndn, i)]
                     sqtolval = tolval*tolval  # the tol is on sqrt
                     if -diff > sqtolval or diff > sqtolval:
-                        ##print ("debug0 NO fix diff, sqtolval", diff, sqtolval)
+                        ##logger.debug(f"debug0 NO fix diff, sqtolval {diff}, {sqtolval}")
                         continue
                     else:
-                        ##print ("debug0 fix diff, sqtolval", diff, sqtolval)
+                        ##logger.debug(f"debug0 fix diff, sqtolval {diff}, {sqtolval}")
                         # if we are still here, it is converged
                         if nb is not None:
                             xvar.fix(xb)
@@ -241,7 +243,7 @@ class Fixer(mpisppy.extensions.extension.Extension):
         self._update_fix_counts()
         for sname,s in self.local_scenarios.items():
             if self.fixer_tuples[s] is None:
-                print ("MAJOR WARNING: No Iter k fixer tuple for s.name=",s.name)
+                logger.warning(f"MAJOR WARNING: No Iter k fixer tuple for s.name={s.name}")
                 return
             if not have_bundles:
                 solver_is_persistent = isinstance(s._solver_plugin, pyo.pyomo.solvers.plugins.solvers.persistent_solver.PersistentSolver)
@@ -250,7 +252,7 @@ class Fixer(mpisppy.extensions.extension.Extension):
                 try:
                     (ndn, i) = s._mpisppy_data.varid_to_nonant_index[varid]
                 except:
-                    print ("Are you trying to fix a Var that is not nonant?")
+                    logger.error("Are you trying to fix a Var that is not nonant?")
                     raise
                 tolval = self.threshold[(ndn, i)]
                 xvar = s._mpisppy_data.nonant_indices[ndn,i]

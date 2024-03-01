@@ -15,11 +15,7 @@ import numpy as np
 from mpisppy.utils.xhat_eval import Xhat_Eval
 from math import inf
 
-# Could also pass, e.g., sys.stdout instead of a filename
-mpisppy.log.setup_logger("mpisppy.cylinders.slam_heuristic",
-                         "slamheur.log",
-                         level=logging.CRITICAL)                         
-logger = logging.getLogger("mpisppy.cylinders.slam_heuristic")
+logger = logging.getLogger(__name__)
 
 class _SlamHeuristic(spoke.InnerBoundNonantSpoke):
 

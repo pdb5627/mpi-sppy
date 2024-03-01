@@ -2,10 +2,15 @@
 # This software is distributed under the 3-clause BSD License.
 # dlw, Feb 2018. Code for closes scenario to xbar
 # TODO Apr. 2020 Eliminate old references to companiondriver
+import logging
 import numpy as np
 import mpisppy.MPI as mpi
 import mpisppy.extensions.xhatbase
 import pyomo.environ as pyo
+
+
+logger = logging.getLogger(__name__)
+
 
 class XhatClosest(mpisppy.extensions.xhatbase.XhatBase):
     """
@@ -29,7 +34,7 @@ class XhatClosest(mpisppy.extensions.xhatbase.XhatBase):
         """
         def _vb(msg):
             if verbose and self.cylinder_rank == 0:
-                print ("(rank0) xhat_looper: " + msg)
+                logger.info("(rank0) xhat_looper: " + msg)
 
         localmindist = np.zeros(1, dtype='d')
         globalmindist = np.zeros(1, dtype='d')

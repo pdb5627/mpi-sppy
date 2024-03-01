@@ -8,11 +8,16 @@
 import time
 import json
 import csv
+import logging
 import mpisppy.cylinders.spoke
 import mpisppy.utils.find_rho as find_rho
 import mpisppy.utils.gradient as grad
 from mpisppy.utils.wtracker import WTracker
 from mpisppy import global_toc
+
+
+logger = logging.getLogger(__name__)
+
 
 class PhOuterBound(mpisppy.cylinders.spoke.OuterBoundSpoke):
     """Updates its own W and x.
@@ -42,7 +47,7 @@ class PhOuterBound(mpisppy.cylinders.spoke.OuterBoundSpoke):
             assert self.opt.options["ph_ob_gradient_rho"]["cfg"] != None, "You need to give a cfg to use gradient rho."
             self.default_rescale_rho = False            
             self.use_gradient_rho = True
-            print("PH Outer Bounder uses an iterative gradient-based rho setter")
+            logger.info("PH Outer Bounder uses an iterative gradient-based rho setter")
             self.cfg = self.opt.options["ph_ob_gradient_rho"]["cfg"]
             if "rho_denom" in  self.opt.options["ph_ob_gradient_rho"]:
                 self.cfg.grad_rho_denom = self.opt.options["ph_ob_gradient_rho"]["rho_denom"]
@@ -98,20 +103,20 @@ class PhOuterBound(mpisppy.cylinders.spoke.OuterBoundSpoke):
         for sname, scenario in self.opt.local_scenarios.items():
             rho_list = [scenario._mpisppy_model.rho[ndn_i]._value
                         for ndn_i in scenario._mpisppy_data.nonant_indices.keys()]
-            print(sname, 'PH OB rho values: ', rho_list[:5])
+            logger.info(f"{sname} PH OB rho values: {rho_list[:5]}")
             break
 
     def _display_W_values(self):
         for (sname, scenario) in self.opt.local_scenarios.items():
             W_list = [w._value for w in scenario._mpisppy_model.W.values()]
-            print(sname, 'W values: ', W_list)
+            logger.info(f"{sname} W values: {W_list}")
             break
 
     def _display_xbar_values(self):
         for (sname, scenario) in self.opt.local_scenarios.items():
             xbar_list = [scenario._mpisppy_model.xbars[ndn_i]._value
                          for ndn_i in scenario._mpisppy_data.nonant_indices.keys()]
-            print(sname, 'PH OB xbar values: ', xbar_list)
+            logger.info(f"{sname} PH OB xbar values: {xbar_list}")
             break
 
     def _set_gradient_rho(self):

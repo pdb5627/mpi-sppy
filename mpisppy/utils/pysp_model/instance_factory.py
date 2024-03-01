@@ -41,7 +41,7 @@ from pyomo.common.dependencies import (
     networkx, networkx_available as has_networkx
 )
 
-logger = logging.getLogger("mpisppy.utils.pysp_model")
+logger = logging.getLogger(__name__)
 
 def _extract_pathspec(
         pathspec,
@@ -564,7 +564,7 @@ class ScenarioTreeInstanceFactory:
         node_name_list = [n._name for n in scenario._node_list]
 
         if verbose:
-            print("Creating instance for scenario=%s" % (scenario_name))
+            logger.info("Creating instance for scenario=%s" % (scenario_name))
 
         scenario_instance = None
 
@@ -643,7 +643,7 @@ class ScenarioTreeInstanceFactory:
                             "in directory: %s\nRecognized formats: .dat, "
                             ".yaml" % (scenario_name, self.data_directory()))
                     if verbose:
-                        print("Data for scenario=%s loads from file=%s"
+                        logger.info("Data for scenario=%s loads from file=%s"
                               % (scenario_name, scenario_data_filename))
                     if data is None:
                         scenario_instance = \
@@ -675,7 +675,7 @@ class ScenarioTreeInstanceFactory:
                     scenario_data = DataPortal(model=self._model_object)
                     for data_file in data_files:
                         if verbose:
-                            print("Node data for scenario=%s partially "
+                            logger.info("Node data for scenario=%s partially "
                                   "loading from file=%s"
                                   % (scenario_name, data_file))
                         scenario_data.load(filename=data_file)
@@ -718,10 +718,10 @@ class ScenarioTreeInstanceFactory:
 
         if scenario_tree._scenario_based_data:
             if verbose:
-                print("Scenario-based instance initialization enabled")
+                logger.info("Scenario-based instance initialization enabled")
         else:
             if verbose:
-                print("Node-based instance initialization enabled")
+                logger.info("Node-based instance initialization enabled")
 
         scenario_instances = {}
         for scenario in scenario_tree._scenarios:
@@ -801,7 +801,7 @@ class ScenarioTreeInstanceFactory:
                                      % (orig_input, self.data_directory()))
 
                 if verbose:
-                    print("Scenario tree bundle specification filename=%s"
+                    logger.info("Scenario tree bundle specification filename=%s"
                           % (bundles))
 
                 scenario_tree_model = scenario_tree_model.clone()
@@ -849,11 +849,11 @@ class ScenarioTreeInstanceFactory:
         if bundles is not None:
             if not isinstance(bundles, str):
                 if verbose:
-                    print("Adding bundles to scenario tree from "
+                    logger.info("Adding bundles to scenario tree from "
                           "user-specified dict")
                 if scenario_tree.contains_bundles():
                     if verbose:
-                        print("Scenario tree already contains bundles. "
+                        logger.info("Scenario tree already contains bundles. "
                               "All existing bundles will be removed.")
                     for bundle in list(scenario_tree.bundles):
                         scenario_tree.remove_bundle(bundle.name)
@@ -876,7 +876,7 @@ class ScenarioTreeInstanceFactory:
                                  "than there are scenarios!")
 
             if verbose:
-                print("Creating "+str(random_bundles)+
+                logger.info("Creating "+str(random_bundles)+
                       " random bundles using seed="
                       +str(random_seed))
 

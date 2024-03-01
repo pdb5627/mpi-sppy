@@ -1,6 +1,7 @@
 # script to estimate zhat from a given xhat for a given model
 
 import sys
+import logging
 import argparse
 import importlib
 import numpy as np
@@ -11,6 +12,10 @@ from mpisppy.confidence_intervals import ciutils
 from mpisppy.utils.xhat_eval import Xhat_Eval
 from mpisppy.utils.sputils import option_string_to_dict
 from mpisppy.utils import config
+
+
+logger = logging.getLogger(__name__)
+
 
 def evaluate_sample_trees(xhat_one, 
                           num_samples,
@@ -115,9 +120,9 @@ def run_samples(cfg, model_module):
     t_zhat = scipy.stats.t.ppf(confidence_level, len(zhats)-1)
     eps_z = t_zhat*s_zhat/np.sqrt(len(zhats))
 
-    print('zhatbar: ', zhatbar)
-    print('estimate: ', [zhatbar-eps_z, zhatbar+eps_z])
-    print('confidence_level', confidence_level)
+    logger.info(f"{zhatbar=}")
+    logger.info(f"estimate: {[zhatbar-eps_z, zhatbar+eps_z]}")
+    logger.info(f"{confidence_level=}")
 
     return zhatbar, eps_z
 

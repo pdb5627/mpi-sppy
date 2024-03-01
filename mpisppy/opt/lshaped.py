@@ -3,6 +3,7 @@
 import pyomo.environ as pyo
 import mpisppy.utils.sputils as sputils
 import numpy as np
+import logging
 import itertools
 import time
 import sys
@@ -19,6 +20,10 @@ from pyomo.core import (
 from pyomo.core.expr.visitor import identify_variables
 from pyomo.repn.standard_repn import generate_standard_repn
 from pyomo.core.expr.numeric_expr import LinearExpression
+
+
+logger = logging.getLogger(__name__)
+
 
 class LShapedMethod(spbase.SPBase):
     """ Base class for the L-shaped method for two-stage stochastic programs.
@@ -591,10 +596,15 @@ class LShapedMethod(spbase.SPBase):
         for self.iter in range(max_iter):
             if verbose and self.cylinder_rank == 0:
                 if self.iter > 0:
-                    print("Current Iteration:", self.iter + 1, "Time Elapsed:", "%7.2f" % (time.time() - t), "Time Spent on Last Master:", "%7.2f" % t1,
-                          "Time Spent Generating Last Cut Set:", "%7.2f" % t2, "Current Objective:", "%7.2f" % m.obj.expr())
+                    logger.info(f"Current Iteration: {self.iter + 1}")
+                    logger.info(f"Time Elapsed: {time.time() - t:7.2f}")
+                    logger.info(f"Time Spent on Last Master: {t1:7.2f}")
+                    logger.info(f"Time Spent Generating Last Cut Set: {t2:7.2f}")
+                    logger.info(f"Current Objective: {m.obj.expr():7.2f}")
                 else:
-                    print("Current Iteration:", self.iter + 1, "Time Elapsed:", "%7.2f" % (time.time() - t), "Current Objective: -Inf")
+                    logger.info(f"Current Iteration: {self.iter + 1}")
+                    logger.info(f"Time Elapsed: {time.time() - t:7.2f}")
+                    logger.info("Current Objective: -Inf")
             t1 = time.time()
             x_vals = np.zeros(len(self.root_vars))
             eta_vals = np.zeros(self.scenario_count)
@@ -645,18 +655,16 @@ class LShapedMethod(spbase.SPBase):
                     if is_persistent:
                         opt.add_constraint(c)
                 if verbose and len(cuts_added) == 0:
-                    print(
-                        f"Converged in {self.iter+1} iterations.\n"
-                        f"Total Time Elapsed: {time.time()-t:7.2f} "
-                        f"Time Spent on Last Master: {t1:7.2f} "
-                        f"Time spent verifying second stage: {t2:7.2f} "
-                        f"Final Objective: {m.obj.expr():7.2f}"
-                    )
+                    logger.info(f"Converged in {self.iter+1} iterations.")
+                    logger.info(f"Total Time Elapsed: {time.time()-t:7.2f}")
+                    logger.info(f"Time Spent on Last Master: {t1:7.2f}")
+                    logger.info(f"Time spent verifying second stage: {t2:7.2f}")
+                    logger.info(f"Final Objective: {m.obj.expr():7.2f}")
                     self.first_stage_solution_available = True
                     self.tree_solution_available = True
                     break
                 if verbose and self.iter == max_iter - 1:
-                    print("WARNING MAX ITERATION LIMIT REACHED !!! ")
+                    logger.warning("WARNING MAX ITERATION LIMIT REACHED !!!")
             else:
                 if len(cuts_added) == 0:
                     break
@@ -669,13 +677,11 @@ class LShapedMethod(spbase.SPBase):
                 converger.convergence_value()
                 if converger.is_converged():
                     if verbose and self.cylinder_rank == 0:
-                        print(
-                            f"Converged to user criteria in {self.iter+1} iterations.\n"
-                            f"Total Time Elapsed: {time.time()-t:7.2f} "
-                            f"Time Spent on Last Master: {t1:7.2f} "
-                            f"Time spent verifying second stage: {t2:7.2f} "
-                            f"Final Objective: {m.obj.expr():7.2f}"
-                        )
+                        logger.info(f"Converged to user criteria in {self.iter+1} iterations.")
+                        logger.info(f"Total Time Elapsed: {time.time()-t:7.2f}")
+                        logger.info(f"Time Spent on Last Master: {t1:7.2f}")
+                        logger.info(f"Time spent verifying second stage: {t2:7.2f}")
+                        logger.info(f"Final Objective: {m.obj.expr():7.2f}")
                     break
         return res
 
@@ -770,7 +776,8 @@ def main():
     ls = LShapedMethod(options, scenario_names, ref.scenario_creator)
     res = ls.lshaped_algorithm()
     if ls.cylinder_rank == 0:
-        print(res)
+        for l in str(res).splitlines():
+            logger.info(l)
 
 
 if __name__ == '__main__':

@@ -4,7 +4,12 @@
 # DLW, Feb 2019
 # This extension uses options["xhat_scenario_dict"] (keys are node names)
 
+import logging
 import mpisppy.extensions.xhatbase
+
+
+logger = logging.getLogger(__name__)
+
 
 class XhatSpecific(mpisppy.extensions.xhatbase.XhatBase):
     """
@@ -38,7 +43,7 @@ class XhatSpecific(mpisppy.extensions.xhatbase.XhatBase):
         """
         def _vb(msg):
             if verbose and self.cylinder_rank == 0:
-                print("  xhat_specific: " + msg)
+                logger.info("  xhat_specific: " + msg)
 
         obj = None
         sname = None

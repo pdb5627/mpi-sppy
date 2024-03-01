@@ -7,6 +7,7 @@ import argparse
 import numpy as np
 import scipy.stats
 import importlib
+import logging
 import os
 from mpisppy import global_toc
     
@@ -17,6 +18,10 @@ import mpisppy.utils.amalgamator as ama
 import mpisppy.utils.xhat_eval as xhat_eval
 import mpisppy.utils.sputils as sputils
 import mpisppy.confidence_intervals.ciutils as ciutils
+
+
+logger = logging.getLogger(__name__)
+
 
 def remove_None(d):
     if d is None:
@@ -96,7 +101,7 @@ class MMWConfidenceIntervals():
         you_can_have_it_all = True
         for ething in everything:
             if not hasattr(self.refmodel, ething):
-                print(f"Module {refmodel} is missing {ething}")
+                logger.warning(f"Module {refmodel} is missing {ething}")
                 you_can_have_it_all = False
         if not you_can_have_it_all:
             raise RuntimeError(f"Module {refmodel} not complete for MMW")

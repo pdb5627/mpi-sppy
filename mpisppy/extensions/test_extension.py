@@ -4,9 +4,14 @@
 # Not all extension points are guaranteed to be here (see the parent class)
 
 
+import logging
 import mpisppy.utils.sputils as sputils
 import mpisppy.extensions.xhatbase
 import mpisppy.phbase as phbase
+
+
+logger = logging.getLogger(__name__)
+
 
 class TestExtension(mpisppy.extensions.extension.Extension):
     """
@@ -51,7 +56,7 @@ class TestExtension(mpisppy.extensions.extension.Extension):
     
     def enditer(self):
         self.who_is_called.add("enditer")
-        print(f"end_iter {self.who_is_called =}")
+        logging.info(f"end_iter {self.who_is_called =}")
 
         
     def enditer_after_sync(self):        

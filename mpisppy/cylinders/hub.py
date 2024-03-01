@@ -14,11 +14,7 @@ from mpisppy.cylinders.spoke import ConvergerSpokeType
 
 from mpisppy import global_toc
 
-# Could also pass, e.g., sys.stdout instead of a filename
-mpisppy.log.setup_logger("mpisppy.cylinders.Hub",
-                         "hub.log",
-                         level=logging.CRITICAL)
-logger = logging.getLogger("mpisppy.cylinders.Hub")
+logger = logging.getLogger(__name__)
 
 class Hub(SPCommunicator):
     def __init__(self, spbase_object, fullcomm, strata_comm, cylinder_comm, spokes, options=None):
@@ -487,13 +483,13 @@ class PHHub(Hub):
 
         ## Generate some warnings if nothing is giving bounds
         if not self.has_outerbound_spokes:
-            logger.warn(
+            logger.warning(
                 "No OuterBound Spokes defined, this converger "
                 "will not cause the hub to terminate"
             )
 
         if not self.has_innerbound_spokes:
-            logger.warn(
+            logger.warning(
                 "No InnerBound Spokes defined, this converger "
                 "will not cause the hub to terminate"
             )

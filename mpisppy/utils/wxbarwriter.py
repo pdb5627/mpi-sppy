@@ -24,11 +24,16 @@
 '''
 
 import os
+import logging
 import pyomo.environ as pyo
 import mpisppy.utils.wxbarutils
 import mpisppy.extensions.extension
 
 import mpisppy.MPI as MPI 
+
+
+logger = logging.getLogger(__name__)
+
                          
 n_proc = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
@@ -48,20 +53,19 @@ class WXBarWriter(mpisppy.extensions.extension.Extension):
             sep_files = ph.options['separate_W_files']
 
         if (x_fname is None and w_fname is None and rank==0):
-            print('Warning: no output files provided to WXBarWriter. '
-                  'No values will be saved.')
+            logger.warning("Warning: no output files provided to WXBarWriter. "
+                           "No values will be saved.")
 
         if (w_fname and (not sep_files) and os.path.exists(w_fname) and rank==0):
-            print('Warning: specified W_fname ({fn})'.format(fn=w_fname) +
-                  ' already exists. Results will be appended to this file.')
+            logger.warning(f"Warning: specified W_fname ({w_fname}) "
+                           "already exists. Results will be appended to this file.")
         elif (w_fname and sep_files and (not os.path.exists(w_fname)) and rank==0):
-            print('Warning: path {path} does not exist. Creating...'.format(
-                    path=w_fname))
+            logger.warning(f"Warning: path {w_fname} does not exist. Creating...")
             os.makedirs(w_fname, exist_ok=True)
 
         if (x_fname and os.path.exists(x_fname) and rank==0):
-            print('Warning: specified Xbar_fname ({fn})'.format(fn=x_fname) +
-                  ' already exists. Results will be appended to this file.')
+            logger.warning(f"Warning: specified Xbar_fname ({x_fname}) "
+                           "already exists. Results will be appended to this file.")
 
         self.PHB = ph
         self.cylinder_rank = rank

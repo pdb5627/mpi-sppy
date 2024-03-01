@@ -11,11 +11,7 @@ import mpisppy.cylinders.spoke as spoke
 from mpisppy.utils.xhat_eval import Xhat_Eval
 from mpisppy.extensions.xhatbase import XhatBase
 
-# Could also pass, e.g., sys.stdout instead of a filename
-mpisppy.log.setup_logger("mpisppy.cylinders.xhatshufflelooper_bounder",
-                         "xhatclp.log",
-                         level=logging.CRITICAL)                         
-logger = logging.getLogger("mpisppy.cylinders.xhatshufflelooper_bounder")
+logger = logging.getLogger(__name__)
 
 class XhatShuffleInnerBound(spoke.InnerBoundNonantSpoke):
 
@@ -68,13 +64,13 @@ class XhatShuffleInnerBound(spoke.InnerBoundNonantSpoke):
         branching_factors = self.opt.options.get("branching_factors", None)  # for stage2ef
         obj = self.xhatter._try_one(snamedict,
                                     solver_options = self.solver_options,
-                                    verbose=False,
+                                    verbose=self.verbose,
                                     restore_nonants=True,
                                     stage2EFsolvern=stage2EFsolvern,
                                     branching_factors=branching_factors)
         def _vb(msg): 
             if self.verbose and self.opt.cylinder_rank == 0:
-                print ("(rank0) " + msg)
+                logger.info("(rank0) " + msg)
 
         if obj is None:
             _vb(f"    Infeasible {snamedict}")
@@ -116,7 +112,7 @@ class XhatShuffleInnerBound(spoke.InnerBoundNonantSpoke):
 
         def _vb(msg): 
             if self.verbose and self.opt.cylinder_rank == 0:
-                print("(rank0) " + msg)
+                logger.info("(rank0) " + msg)
 
         xh_iter = 1
         while not self.got_kill_signal():
@@ -125,16 +121,16 @@ class XhatShuffleInnerBound(spoke.InnerBoundNonantSpoke):
             if self.get_serial_number() == 0:
                 continue
 
-            if (xh_iter-1) % 100 == 0:
+            if (xh_iter-1) % 10000 == 0:
                 logger.debug(f'   Xhatshuffle loop iter={xh_iter} on rank {self.global_rank}')
                 logger.debug(f'   Xhatshuffle got from opt on rank {self.global_rank}')
 
             if self.new_nonants:
                 # similar to above, not all ranks will agree on
                 # when there are new_nonants (in the same loop)
-                logger.debug(f'   *Xhatshuffle loop iter={xh_iter}')
-                logger.debug(f'   *got a new one! on rank {self.global_rank}')
-                logger.debug(f'   *localnonants={str(self.localnonants)}')
+                logger.info(f'   *Xhatshuffle loop iter={xh_iter}')
+                logger.info(f'   *got a new one! on rank {self.global_rank}')
+                logger.info(f'   *localnonants={str(self.localnonants)}')
 
                 # update the caches
                 self.opt._put_nonant_cache(self.localnonants)
@@ -192,7 +188,7 @@ class ScenarioCycler:
         while len(empty_nodes) >0:
             #Sanity check to make no infinite loop.
             if filling_idx == self._cycle_idx and 'ROOT' in self.nodescen_dict and self.nodescen_dict['ROOT'] is not None:
-                print(self.nodescen_dict)
+                logger.error(self.nodescen_dict)
                 raise RuntimeError("_fill_nodescen_dict looped over every scenario but was not able to find a scen for every nonleaf node.")
             sname = self._shuffled_snames[filling_idx]
             snum = self._original_order[filling_idx]

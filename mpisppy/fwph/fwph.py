@@ -41,6 +41,7 @@ import mpisppy.utils.sputils as sputils
 import numpy as np
 import pyomo.environ as pyo
 import time
+import logging
 import re # For manipulating scenario names
 from mpisppy import global_toc
 
@@ -49,6 +50,10 @@ from pyomo.repn.standard_repn import generate_standard_repn
 from mpisppy.utils.sputils import find_active_objective
 from pyomo.core.expr.visitor import replace_expressions
 from pyomo.core.expr.numeric_expr import LinearExpression
+
+
+logger = logging.getLogger(__name__)
+
 
 class FWPH(mpisppy.phbase.PHBase):
     
@@ -169,7 +174,7 @@ class FWPH(mpisppy.phbase.PHBase):
                     self._output(itr+1, self._local_bound, 
                                  best_bound, np.nan, secs)
                     if (self.cylinder_rank == 0 and self.vb):
-                        print('FWPH converged to user-specified criteria')
+                        logger.info("FWPH converged to user-specified criteria")
                     break
                 self.spcomm.sync()
             if (self.ph_converger):
@@ -180,7 +185,7 @@ class FWPH(mpisppy.phbase.PHBase):
                     self._output(itr+1, self._local_bound, 
                                  best_bound, diff, secs)
                     if (self.cylinder_rank == 0 and self.vb):
-                        print('FWPH converged to user-specified criteria')
+                        logger.info("FWPH converged to user-specified criteria")
                     break
             else: # Convergence check from Boland
                 diff = self._conv_diff()
@@ -190,7 +195,7 @@ class FWPH(mpisppy.phbase.PHBase):
                     self._output(itr+1, self._local_bound, 
                                  best_bound, diff, secs)
                     if (self.cylinder_rank == 0 and self.vb):
-                        print('PH converged based on standard criteria')
+                        logger.info("PH converged based on standard criteria")
                     break
 
             secs = time.time() - self.t0
@@ -199,7 +204,7 @@ class FWPH(mpisppy.phbase.PHBase):
             timed_out = self._is_timed_out()
             if (self._is_timed_out()):
                 if (self.cylinder_rank == 0 and self.vb):
-                    print('Timeout.')
+                    logger.info("Timeout.")
                 break
 
         self._swap_nonant_vars_back()
@@ -273,13 +278,13 @@ class FWPH(mpisppy.phbase.PHBase):
             stop_check_tol = self.FW_options["stop_check_tol"]\
                              if "stop_check_tol" in self.FW_options else 1e-4
             if (self.is_minimizing and stop_check < -stop_check_tol):
-                print('Warning (fwph): convergence quantity Gamma^t = '
-                     '{sc:.2e} (should be non-negative)'.format(sc=stop_check))
-                print('Try decreasing the MIP gap tolerance and re-solving')
+                logger.warning("Warning (fwph): convergence quantity Gamma^t = "
+                               f"{stop_check:.2e} (should be non-negative)")
+                logger.warning("Try decreasing the MIP gap tolerance and re-solving")
             elif (not self.is_minimizing and stop_check > stop_check_tol):
-                print('Warning (fwph): convergence quantity Gamma^t = '
-                     '{sc:.2e} (should be non-positive)'.format(sc=stop_check))
-                print('Try decreasing the MIP gap tolerance and re-solving')
+                logger.warning("Warning (fwph): convergence quantity Gamma^t = "
+                               f"{stop_check:.2e} (should be non-positive)")
+                logger.warning("Try decreasing the MIP gap tolerance and re-solving")
 
             self._add_QP_column(model_name)
             if (sputils.is_persistent(qp._QP_solver_plugin)):
@@ -455,7 +460,7 @@ class FWPH(mpisppy.phbase.PHBase):
         if (self.cylinder_rank != 0):
             return
 
-        print('Checking initial points...', end='', flush=True)
+        logger.info("Checking initial points...")
         
         points = {key: value for block in init_pts 
                              for (key, value) in block.items()}
@@ -501,19 +506,19 @@ class FWPH(mpisppy.phbase.PHBase):
         check_tol = self.FW_options['check_tol'] \
                         if 'check_tol' in self.FW_options.keys() else 1e-4
         if (pyo.value(obj_expr) > check_tol):
-            print('error.')
+            logger.error("error.")
             raise ValueError('The specified initial points do not satisfy the '
                 'critera necessary for convergence. Please specify different '
                 'initial points, or increase FW_iter_limit')
-        print('done.')
+        logger.info("done.")
 
     def _check_solve(self, results, model_name):
         ''' Verify that the solver solved to optimality '''
         if (results.solver.status != pyo.SolverStatus.ok) or \
             (results.solver.termination_condition != pyo.TerminationCondition.optimal):
-            print('Solve failed on model', model_name)
-            print('Solver status:', results.solver.status)
-            print('Termination conditions:', results.solver.termination_condition)
+            logger.error(f"Solve failed on model {model_name}")
+            logger.error(f"Solver status: {results.solver.status}")
+            logger.error(f"Termination conditions: {results.solver.termination_condition}")
             raise RuntimeError()
 
     def _compute_dual_bound(self):
@@ -844,7 +849,7 @@ class FWPH(mpisppy.phbase.PHBase):
                     'points with t_max=1 at the same time.')
             else:
                 if (self.cylinder_rank == 0):
-                    print('WARNING: Cannot specify initial points and use '
+                    logger.warning('WARNING: Cannot specify initial points and use '
                         'bundles at the same time. Ignoring specified initial '
                         'points')
                 # Remove specified initial points
@@ -859,7 +864,7 @@ class FWPH(mpisppy.phbase.PHBase):
         #    proximal terms (no binary variables allowed in FWPH QPs)
         if ('linearize_binary_proximal_terms' in self.options
             and self.options['linearize_binary_proximal_terms']):
-            print('Warning: linearize_binary_proximal_terms cannot be used '
+            logger.warning('Warning: linearize_binary_proximal_terms cannot be used '
                   'with the FWPH algorithm. Ignoring...')
             self.options['linearize_binary_proximal_terms'] = False
 
@@ -867,7 +872,7 @@ class FWPH(mpisppy.phbase.PHBase):
         #    proximal terms (FWPH QPs should be QPs)
         if ('linearize_proximal_terms' in self.options
             and self.options['linearize_proximal_terms']):
-            print('Warning: linearize_proximal_terms cannot be used '
+            logger.warning('Warning: linearize_proximal_terms cannot be used '
                   'with the FWPH algorithm. Ignoring...')
             self.options['linearize_proximal_terms'] = False
 
@@ -877,26 +882,19 @@ class FWPH(mpisppy.phbase.PHBase):
 
     def _output(self, itr, bound, best_bound, diff, secs):
         if (self.cylinder_rank == 0 and self.vb):
-            print('{itr:3d} {bound:12.4f} {best_bound:12.4f} {diff:12.4e} {secs:11.1f}s'.format(
-                    itr=itr, bound=bound, best_bound=best_bound, 
-                    diff=diff, secs=secs))
+            logger.info(f"{itr:3d} {bound:12.4f} {best_bound:12.4f} {diff:12.4e} {secs:11.1f}s")
         if (self.cylinder_rank == 0 and 'save_file' in self.FW_options.keys()):
             fname = self.FW_options['save_file']
             with open(fname, 'a') as f:
-                f.write('{itr:d},{bound:.16f},{best_bound:.16f},{diff:.16f},{secs:.16f}\n'.format(
-                    itr=itr, bound=bound, best_bound=best_bound,
-                    diff=diff, secs=secs))
+                f.write(f"{itr:d},{bound:.16f},{best_bound:.16f},{diff:.16f},{secs:.16f}\n")
 
     def _output_header(self):
         if (self.cylinder_rank == 0 and self.vb):
-            print('itr {bound:>12s} {bb:>12s} {cd:>12s} {tm:>12s}'.format(
-                    bound="bound", bb="best bound", cd="conv diff", tm="time"))
+            logger.info(f"itr {'bound':>12s} {'best bound':>12s} {'conv diff':>12s} {'time':>12s}")
         if (self.cylinder_rank == 0 and 'save_file' in self.FW_options.keys()):
             fname = self.FW_options['save_file']
             with open(fname, 'a') as f:
-                f.write('{itr:s},{bound:s},{bb:s},{diff:s},{secs:s}\n'.format(
-                    itr="Iteration", bound="Bound", bb="Best bound",
-                    diff="Error", secs="Time(s)"))
+                f.write("Iteration,Bound,Best bound,Error,Time(s)")
 
     def save_weights(self, fname):
         ''' Save the computed weights to the specified file.

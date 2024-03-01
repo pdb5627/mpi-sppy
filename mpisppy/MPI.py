@@ -1,4 +1,5 @@
 # This software is distributed under the 3-clause BSD License.
+import logging
 
 try:
     from mpi4py.MPI import *
@@ -80,3 +81,6 @@ except ImportError:
         recv_data[:] = send_data
 
     COMM_WORLD = _MockMPIComm()
+
+logger = logging.getLogger(__name__)
+logger.info("Initializing mpi-sppy")

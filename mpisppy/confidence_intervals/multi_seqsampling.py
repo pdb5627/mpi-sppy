@@ -4,6 +4,7 @@
 # This extension of SeqSampling works for multistage, using independent 
 # scenarios instead of a single scenario tree.
 
+import logging
 import pyomo.environ as pyo
 import pyomo.common.config as pyofig
 import mpisppy.MPI as mpi
@@ -25,6 +26,9 @@ from mpisppy.confidence_intervals.seqsampling import SeqSampling
 from mpisppy.tests.examples.aircond import xhat_generator_aircond
 import mpisppy.confidence_intervals.sample_tree as sample_tree
 import mpisppy.confidence_intervals.ciutils as ciutils
+
+
+logger = logging.getLogger(__name__)
 
 class IndepScens_SeqSampling(SeqSampling):
     def __init__(self,
@@ -137,8 +141,8 @@ class IndepScens_SeqSampling(SeqSampling):
             Gk, sk = self._gap_estimators_with_independent_scenarios(xhat_k,nk,estimator_scenario_names,scenario_denouement)
 
             if (k%10==0):
-                print(f"k={k}")
-                print(f"n_k={nk}")
+                logger.info(f"{k=}")
+                logger.info(f"n_k={nk}")
 
         #----------------------------Step 4 -------------------------------------#
         if (k==maxit) :
@@ -258,7 +262,7 @@ class IndepScens_SeqSampling(SeqSampling):
         ev.mpicomm.Allreduce(local_estim, global_estim, op=mpi.SUM) 
         G,ssq, prob_sqnorm,obj_at_xhat = global_estim
         if global_rank==0:
-            print(f"G = {G}")
+            logger.info(f"{G=}")
         sample_var = (ssq - G**2)/(1-prob_sqnorm) #Unbiased sample variance
         sk = np.sqrt(sample_var)
         

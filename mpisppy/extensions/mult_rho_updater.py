@@ -6,10 +6,15 @@
 # Preference given to user-supplied converger
 
 import math
+import logging
 import mpisppy.extensions.extension
 
 import numpy as np
 import mpisppy.MPI as MPI
+
+
+logger = logging.getLogger(__name__)
+
 
 # for ph.options['mult_rho_options']:
 _mult_rho_defaults = { 'convergence_tolerance' : 1e-4,
@@ -97,7 +102,7 @@ class MultRhoUpdater(mpisppy.extensions.extension.Extension):
                 for ndn_i, rho in s._mpisppy_model.rho.items():
                     rho._value = self._first_rho[ndn_i] * self.first_c / conv
             if ph.cylinder_rank == 0:
-                print(f"MultRhoUpdater iter={ph_iter}; {ndn_i} now has value {rho._value}")
+                logger.info(f"MultRhoUpdater iter={ph_iter}; {ndn_i} now has value {rho._value}")
 
     def enditer(self):
         pass

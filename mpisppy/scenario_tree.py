@@ -3,7 +3,7 @@
 # scenario_tree.py; PySP 2.0 scenario structure
 # ALL INDEXES ARE ZERO-BASED
 import logging
-logger = logging.getLogger('mpisppy.scenario_tree')
+logger = logging.getLogger(__name__)
 
 import pyomo.environ as pyo
 from pyomo.core.base.indexed_component_slice import IndexedComponent_slice
@@ -84,7 +84,7 @@ class ScenarioNode:
                                                          scen_model,
                                                          self.nonant_list)
         else:
-            logger.warning("nonant_list is empty for node {},".format(name) +\
+            logger.warning(f"nonant_list is empty for node {name}, "
                     "No nonanticipativity will be enforced at this node by default")
             self.nonant_vardata_list = []
 

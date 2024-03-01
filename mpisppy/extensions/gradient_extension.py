@@ -3,6 +3,7 @@
 
 import os
 import time
+import logging
 import numpy as np
 import pyomo.environ as pyo
 
@@ -14,6 +15,9 @@ import mpisppy.utils.sputils as sputils
 import mpisppy.convergers.norms_and_residuals as norms
 from mpisppy.utils.wtracker import WTracker
 from mpisppy import global_toc
+
+
+logger = logging.getLogger(__name__)
 
 
 class Gradient_rho_extension(mpisppy.extensions.extension.Extension):
@@ -66,14 +70,14 @@ class Gradient_rho_extension(mpisppy.extensions.extension.Extension):
         self.prev_primal_norm = self.curr_primal_norm
         self.curr_primal_norm = norms.scaled_primal_metric(self.opt)
         norm_diff = np.abs(self.curr_primal_norm - self.prev_primal_norm)
-        #print(f'{norm_diff =}')
+        #logger.info(f'{norm_diff =}')
         return (norm_diff <= primal_thresh)
 
     def _rho_dual_crit(self):
         dual_thresh = self.cfg.grad_dual_thresh
         self.wt.grab_local_Ws()
         dual_norm = norms.scaled_dual_metric(self.opt, self.wt.local_Ws, self.opt._PHIter)
-        #print(f'{dual_norm =}')
+        #logger.info(f'{dual_norm =}')
         return (dual_norm <= dual_thresh)
 
     def _rho_primal_dual_crit(self):
@@ -82,20 +86,20 @@ class Gradient_rho_extension(mpisppy.extensions.extension.Extension):
         primal_resid = norms.primal_residuals_norm(self.opt)
         dual_resid = norms.dual_residuals_norm(self.opt, self.wt.local_xbars, self.opt._PHIter)
         resid_rel_norm = np.divide(dual_resid, primal_resid, out=np.zeros_like(primal_resid))
-        #print(f'{resid_rel_norm =}')
+        #logger.info(f'{resid_rel_norm =}')
         return (resid_rel_norm <= pd_thresh)
 
     def display_rho_values(self):
         for sname, scenario in self.opt.local_scenarios.items():
             rho_list = [scenario._mpisppy_model.rho[ndn_i]._value
                       for ndn_i, _ in scenario._mpisppy_data.nonant_indices.items()]
-            print(sname, 'rho values: ', rho_list[:5])
+            logger.info(f"{sname} rho values: {rho_list[:5]}")
             break
 
     def display_W_values(self):
         for (sname, scenario) in self.opt.local_scenarios.items():
             W_list = [w._value for w in scenario._mpisppy_model.W.values()]
-            print(sname, 'W values: ', W_list)
+            logger.info(f"{sname} W values: {W_list}")
             break
 
 

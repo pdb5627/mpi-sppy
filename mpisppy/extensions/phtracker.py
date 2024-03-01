@@ -6,10 +6,15 @@ import ast
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import logging
 import pandas as pd
 from mpisppy.extensions.extension import Extension
 from mpisppy.cylinders.spoke import ConvergerSpokeType
 from mpisppy.cylinders.spoke import Spoke
+
+
+logger = logging.getLogger(__name__)
+
 
 class TrackedData():
     ''' A class to manage the data for a single variable (e.g. gaps, bounds, etc.)
@@ -56,7 +61,7 @@ class TrackedData():
             raise RuntimeError("row must be a dict or list")
         if row_iter in self.seen_iters:
             if self.verbose:
-                print(f"WARNING: Iteration {row_iter} already seen for {self.name}")
+                logger.warning(f"WARNING: Iteration {row_iter} already seen for {self.name}")
             return
         self.seen_iters.add(row_iter)
         # since append is deprecated
@@ -245,7 +250,7 @@ class PHTracker(Extension):
         """
         if gather and track_var not in self._reduce_types:
             if self.verbose:
-                print(f"WARNING: Cannot gather {track_var} data; not a reduce type")
+                logger.warning(f"WARNING: Cannot gather {track_var} data; not a reduce type")
             return
 
         if gather:
@@ -487,7 +492,7 @@ class PHTracker(Extension):
                 plt.yscale('symlog', linthresh=threshold)
             else:
                 if self.verbose:
-                    print("WARNING: No nonzero gaps to compute threshold")
+                    logger.warning("WARNING: No nonzero gaps to compute threshold")
 
         plt.xlabel('Iteration')
         plt.ylabel(f'{var.capitalize()} values')

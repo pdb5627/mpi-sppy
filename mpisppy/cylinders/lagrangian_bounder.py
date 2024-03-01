@@ -1,6 +1,11 @@
 # Copyright 2020 by B. Knueven, D. Mildebrath, C. Muir, J-P Watson, and D.L. Woodruff
 # This software is distributed under the 3-clause BSD License.
+import logging
 import mpisppy.cylinders.spoke
+
+
+logger = logging.getLogger(__name__)
+
 
 class LagrangianOuterBound(mpisppy.cylinders.spoke.OuterBoundWSpoke):
 
@@ -20,7 +25,7 @@ class LagrangianOuterBound(mpisppy.cylinders.spoke.OuterBoundWSpoke):
         verbose = self.opt.options['verbose']
         # This is sort of a hack, but might help folks:
         if "ipopt" in self.opt.options["solver_name"]:
-            print("\n WARNING: An ipopt solver will not give outer bounds\n")
+            logger.warning("WARNING: An ipopt solver will not give outer bounds")
         teeme = False
         if "tee-rank0-solves" in self.opt.options:
             teeme = self.opt.options['tee-rank0-solves']

@@ -3,7 +3,6 @@
 import logging
 import time
 import random
-import mpisppy.log
 import mpisppy.utils.sputils as sputils
 import mpisppy.cylinders.spoke as spoke
 
@@ -11,6 +10,10 @@ from math import inf
 from pyomo.opt import SolverFactory, SolverStatus, TerminationCondition
 from mpisppy.phbase import PHBase
 from mpisppy.utils.xhat_eval import Xhat_Eval
+
+
+logger = logging.getLogger(__name__)
+
 
 class XhatLShapedInnerBound(spoke.InnerBoundNonantSpoke):
 
@@ -36,15 +39,15 @@ class XhatLShapedInnerBound(spoke.InnerBoundNonantSpoke):
         self.opt._update_E1()  # Apologies for doing this after the solves...
         if abs(1 - self.opt.E1) > self.opt.E1_tolerance:
             if self.opt.cylinder_rank == 0:
-                print("ERROR")
-                print("Total probability of scenarios was ", self.opt.E1)
-                print("E1_tolerance = ", self.opt.E1_tolerance)
+                logger.error("ERROR")
+                logger.error(f"Total probability of scenarios was {self.opt.E1}")
+                logger.error(f"E1_tolerance = {self.opt.E1_tolerance}")
             quit()
         infeasP = self.opt.infeas_prob()
         if infeasP != 0.:
             if self.opt.cylinder_rank == 0:
-                print("ERROR")
-                print("Infeasibility detected; E_infeas, E1=", infeasP, self.opt.E1)
+                logger.error("ERROR")
+                logger.error(f"Infeasibility detected; E_infeas={infeasP}, E1={self.opt.E1}")
             quit()
 
         self.opt._save_nonants() # make the cache

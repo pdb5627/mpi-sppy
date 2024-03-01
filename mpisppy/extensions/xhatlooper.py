@@ -4,7 +4,12 @@
 # Written to be the only extension or called from an extension "manager."
 # DLW, Jan 2019
 
+import logging
 import mpisppy.extensions.xhatbase
+
+
+logger = logging.getLogger(__name__)
+
 
 class XhatLooper(mpisppy.extensions.xhatbase.XhatBase):
     """
@@ -49,8 +54,7 @@ class XhatLooper(mpisppy.extensions.xhatbase.XhatBase):
         """
         def _vb(msg):
             if verbose and self.cylinder_rank == 0:
-                print ("    rank {} xhat_looper: {}".\
-                       format(self.cylinder_rank,msg))
+                logger.info(f"    rank {self.cylinder_rank} xhat_looper: {msg}")
         obj = None
         sname = None
         snumlists = dict()
@@ -65,7 +69,7 @@ class XhatLooper(mpisppy.extensions.xhatbase.XhatBase):
                 if seed is None:
                     snumlists[ndn] = [i % nsize for i in range(llim)]
                 else:
-                    print ("need a random permutation in snumlist xxxx quitting")
+                    logger.error("need a random permutation in snumlist xxxx quitting")
                     quit()
         
         self.opt._save_nonants() # to cache for use in fixing

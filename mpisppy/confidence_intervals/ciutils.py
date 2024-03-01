@@ -4,6 +4,7 @@
 
 import os
 import math
+import logging
 import importlib
 import numpy as np
 import mpisppy.MPI as mpi
@@ -14,6 +15,8 @@ from mpisppy import global_toc
 import mpisppy.utils.xhat_eval as xhat_eval
 import mpisppy.utils.amalgamator as ama
 import mpisppy.confidence_intervals.sample_tree as sample_tree
+
+logger = logging.getLogger(__name__)
 
 fullcomm = mpi.COMM_WORLD
 global_rank = fullcomm.Get_rank()
@@ -193,10 +196,10 @@ def correcting_numeric(G, cfg, relative_error=True, threshold=1e-4, objfct=None)
     if objfct is None:
         raise RuntimeError("We need a value of the objective function to remove numerically small G")
     elif sense == pyo.minimize and G <= -crit:
-        print(f"WARNING: The gap estimator is the wrong sign: {G}")
+        logger.warning(f"WARNING: The gap estimator is the wrong sign: {G}")
         return G
     elif sense == pyo.maximize and G >= crit:
-        print(f"WARNING: The gap estimator is the wrong sign: {G}")
+        logger.warning(f"WARNING: The gap estimator is the wrong sign: {G}")
         return G
     else:
         if sense == pyo.minimize:
@@ -265,7 +268,7 @@ def gap_estimators(xhat_one,
     '''
     global_toc("Enter gap_estimators")
     if solving_type not in ["EF_2stage","EF_mstage"]:
-        print(f"solving type=", solving_type)
+        logger.error(f"{solving_type=}")
         raise RuntimeError("Only EF solve for the approximate problem is supported yet.")
     else:
         is_multi = (solving_type=="EF_mstage")
@@ -415,7 +418,7 @@ def gap_estimators(xhat_one,
     ev.mpicomm.Allreduce(local_estim, global_estim, op=mpi.SUM) 
     G,ssq, prob_sqnorm,obj_at_xhat = global_estim
     if global_rank==0 and verbose:
-        print(f"G = {G}")
+        logger.info(f"{G=}")
     sample_var = (ssq - G**2)/(1-prob_sqnorm) #Unbiased sample variance
     s = np.sqrt(sample_var)
     

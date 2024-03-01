@@ -5,8 +5,13 @@
     extension.
 """
 
+import logging
 import pyomo.environ as pyo
 import mpisppy.extensions.extension
+
+
+logger = logging.getLogger(__name__)
+
 
 class Gapper(mpisppy.extensions.extension.Extension):
 
@@ -20,7 +25,7 @@ class Gapper(mpisppy.extensions.extension.Extension):
                        
     def _vb(self, str):
         if self.verbose and self.cylinder_rank == 0:
-            print ("(rank0) mipgapper:" + str)
+            logger.info("(rank0) mipgapper:" + str)
 
     def set_mipgap(self, mipgap):
         """ set the mipgap

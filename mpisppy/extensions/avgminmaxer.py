@@ -5,7 +5,12 @@
 # DLW, Feb 2019
 # This extension uses options["avgminmax_name"]
 
+import logging
 import mpisppy.extensions.xhatbase
+
+
+logger = logging.getLogger(__name__)
+
 
 class MinMaxAvg(mpisppy.extensions.xhatbase.XhatBase):
     """
@@ -23,7 +28,7 @@ class MinMaxAvg(mpisppy.extensions.xhatbase.XhatBase):
     def post_iter0(self):
         avgv, minv, maxv = self.ph.avg_min_max(self.compstr)
         if (self.cylinder_rank == 0):
-            print ("  ### ", self.compstr,": avg, min, max, max-min", avgv, minv, maxv, maxv-minv)
+            logger.info(f"  ### {self.compstr}: avg, min, max, max-min {avgv}, {minv}, {maxv}, {maxv-minv}")
         
     def miditer(self, PHIter, conv):
         return
@@ -31,7 +36,7 @@ class MinMaxAvg(mpisppy.extensions.xhatbase.XhatBase):
     def enditer(self, PHIter):
         avgv, minv, maxv = self.ph.avg_min_max(self.compstr)
         if (self.cylinder_rank == 0):
-            print ("  ### ", self.compstr,": avg, min, max, max-min", avgv, minv, maxv, maxv-minv)
+            logger.info(f"  ### {self.compstr}: avg, min, max, max-min {avgv}, {minv}, {maxv}, {maxv-minv}")
 
     def post_everything(self, PHIter, conv):
         return

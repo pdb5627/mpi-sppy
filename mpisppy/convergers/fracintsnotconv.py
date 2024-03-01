@@ -7,8 +7,13 @@
 """
 
 import math
+import logging
 import pyomo.environ as pyo
 import mpisppy.convergers.converger
+
+
+logger = logging.getLogger(__name__)
+
 
 class FractionalConverger(mpisppy.convergers.converger.Converger):
     """ Illustrate a class to contain data used by the converger 
@@ -31,7 +36,7 @@ class FractionalConverger(mpisppy.convergers.converger.Converger):
         self._comms = phb.comms
         self._rank = phb.cylinder_rank
         if self.verbose:
-            print ("Created converger=",self.name)
+            logger.info(f"Created converger={self.name}")
         
     def _convergence_value(self):
         """ compute the fraction of *not* converged ints
@@ -52,17 +57,17 @@ class FractionalConverger(mpisppy.convergers.converger.Converger):
                     if xvar.is_integer() or xvar.is_binary():
                         numints += 1
                         xb = pyo.value(s._mpisppy_model.xbars[(ndn,i)])
-                        #print ("dlw debug",xb*xb, pyo.value(s._mpisppy_model.xsqbars[(ndn,i)]))
+                        #logger.debug(f"dlw debug {xb*xb} {pyo.value(s._mpisppy_model.xsqbars[(ndn,i)])}")
                         if math.isclose(xb * xb, pyo.value(s._mpisppy_model.xsqbars[(ndn,i)]), abs_tol=1e-09):
                             numconv += 1
         if self.verbose:
-            print (self.name,": numints=",numints)
+            logger.info(f"{self.name}: numints={numints}")
         if numints > 0:
             retval = 1.0 - numconv / numints
         else:
             retval = 0
         if self.verbose:
-            print (self.name,": convergence value=",retval)
+            logger.info(f"{self.name}: convergence value={retval}")
         return retval
 
     def is_converged(self):

@@ -9,7 +9,7 @@ from mpisppy import MPI
 from mpisppy.utils.sputils import find_active_objective
 
 
-logger = logging.getLogger('mpisppy.sc')
+logger = logging.getLogger(__name__)
 
 
 SCOptions = parapint.algorithms.IPOptions

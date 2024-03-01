@@ -13,6 +13,7 @@ import mpisppy.utils.sputils as sputils
 import numpy as np
 import scipy.stats
 import importlib
+import logging
 from mpisppy import global_toc
 from mpisppy.utils import config
 import mpisppy.utils.solver_spec as solver_spec
@@ -25,7 +26,11 @@ import mpisppy.utils.xhat_eval as xhat_eval
 import mpisppy.confidence_intervals.ciutils as ciutils
 import mpisppy.confidence_intervals.confidence_config as confidence_config
 
-print("\nTBD: check seqsampling for start vs start_seed")
+
+logger = logging.getLogger(__name__)
+
+
+logger.warning("TBD: check seqsampling for start vs start_seed")
 
 
 #==========
@@ -35,7 +40,7 @@ def is_needed(cfg, needed_things, message=""):
     for i in needed_things:
         if i not in cfg:
             absent.append(i)
-            print(f"{i =}, {hasattr(cfg,i) =}")
+            logger.error(f"{i=}, {hasattr(cfg, i)=}")
     if len(absent) > 0:
         raise RuntimeError("Some options are missing from this list of required options:\n"
                            f"{needed_things}\n"
@@ -176,7 +181,7 @@ class SeqSampling():
         you_can_have_it_all = True
         for ething in everything:
             if not hasattr(self.refmodel, ething):
-                print(f"Module {refmodel} is missing {ething}")
+                logger.warning(f"Module {refmodel} is missing {ething}")
                 you_can_have_it_all = False
         if not you_can_have_it_all:
             raise RuntimeError(f"Module {refmodel} not complete for seqsampling")
@@ -230,10 +235,10 @@ class SeqSampling():
             is_needed(cfg, needed_things)
             # check resampling frequencies
             if not hasattr(cfg, 'kf_Gs') or cfg['kf_Gs'] != 1:
-                print("kf_Gs must be 1 for multi-stage, so assigning 1")
+                logger.warning("kf_Gs must be 1 for multi-stage, so assigning 1")
                 cfg.quick_assign("kf_Gs", int, 1)
             if not hasattr(cfg, 'kf_xhat') or cfg['kf_xhat'] != 1:
-                print("kf_Gs must be 1 for multi-stage, so assigning 1")
+                logger.warning("kf_Gs must be 1 for multi-stage, so assigning 1")
                 cfg.quick_assign("kf_xhat", int, 1)
         
         #Get the stopping criterion
@@ -304,7 +309,7 @@ class SeqSampling():
                 c = max(1,2*np.log(s/(np.sqrt(2*np.pi)*(1-confidence_level))))
             
             lower_bound = (c+2*p*np.power(k,2*q/r))/((h-hprime)**2)   
-        #print(f"nk={lower_bound}")
+        #logger.debug(f"nk={lower_bound}")
         return int(np.ceil(lower_bound))
     
     def bpl_fsp_sampsize(self,k,G,s,nk_m1):
@@ -322,9 +327,9 @@ class SeqSampling():
         b = 1+t*s
         c = nk_m1*G
         maxroot = -(np.sqrt(b**2-4*a*c)+b)/(2*a)
-        print(f"s={s}, t={t}, G={G}")
-        print(f"a={a}, b={b},c={c},delta={b**2-4*a*c}")
-        print(f"At iteration {k}, we took n_k={int(np.ceil((maxroot**2)))}")
+        logger.info(f"{s=}, {t=}, {G=}")
+        logger.info(f"{a=}, {b=}, {c=},delta={b**2-4*a*c}")
+        logger.info(f"At iteration {k}, we took n_k={int(np.ceil((maxroot**2)))}")
         return(int(np.ceil(maxroot**2)))
     
     
@@ -504,10 +509,10 @@ class SeqSampling():
             Gk,sk = estim['G'],estim['s']
 
             if (k%10==0) and global_rank==0:
-                print(f"k={k}")
-                print(f"n_k={nk}")
-                print(f"G_k={Gk}")
-                print(f"s_k={sk}")
+                logger.info(f"{k=}")
+                logger.info(f"n_k={nk}")
+                logger.info(f"G_k={Gk}")
+                logger.info(f"s_k={sk}")
         #----------------------------Step 4 -------------------------------------#
         if (k==maxit) :
             raise RuntimeError(f"The loop terminated after {maxit} iteration with no acceptable solution")

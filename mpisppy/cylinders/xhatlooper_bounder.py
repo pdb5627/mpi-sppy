@@ -7,11 +7,7 @@ from mpisppy.utils.xhat_eval import Xhat_Eval
 import logging
 import mpisppy.log
 
-# Could also pass, e.g., sys.stdout instead of a filename
-mpisppy.log.setup_logger("mpisppy.cylinders.xhatlooper_bounder",
-                         "xhatlp.log",
-                         level=logging.CRITICAL)                         
-logger = logging.getLogger("mpisppy.cylinders.xhatlooper_bounder")
+logger = logging.getLogger(__name__)
 
 
 class XhatLooperInnerBound(spoke.InnerBoundNonantSpoke):
@@ -38,9 +34,9 @@ class XhatLooperInnerBound(spoke.InnerBoundNonantSpoke):
         self.opt._update_E1()
         if abs(1 - self.opt.E1) > self.opt.E1_tolerance:
             if self.opt.cylinder_rank == 0:
-                print("ERROR")
-                print("Total probability of scenarios was ", self.opt.E1)
-                print("E1_tolerance = ", self.opt.E1_tolerance)
+                logger.error("ERROR")
+                logger.error(f"Total probability of scenarios was {self.opt.E1}")
+                logger.error(f"E1_tolerance = {self.opt.E1_tolerance}")
             quit()
         ### end iter0 stuff
 

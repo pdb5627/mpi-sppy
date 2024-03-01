@@ -9,9 +9,14 @@ from mpisppy import global_toc
 import pyomo.environ as pyo
 import sys
 import math
+import logging
 import mpisppy.utils.sputils as sputils
 import numpy as np
 import mpisppy.MPI as mpi
+
+
+
+
 
 class CrossScenarioExtension(Extension):
     def __init__(self, spbase_object):
@@ -108,7 +113,7 @@ class CrossScenarioExtension(Extension):
         else: 
             opt.mpicomm.Allreduce(local_ob, global_ob, op=mpi.MIN)
 
-        #print(f"CrossScenarioExtension OB: {global_ob[0]}")
+        #logger.info(f"CrossScenarioExtension OB: {global_ob[0]}")
 
         opt.spcomm.BestOuterBound = opt.spcomm.OuterBoundUpdate(global_ob[0], char='C')
 

@@ -7,7 +7,7 @@ import pyomo.environ as pyo
 from mpisppy.scenario_tree import ScenarioNode as mpisppyScenarioNode
 from .instance_factory import ScenarioTreeInstanceFactory
 
-logger = logging.getLogger("mpisppy.utils.pysp_model")
+logger = logging.getLogger(__name__)
 
 def _get_cost_expression(model, cost_variable):
     return model.find_component(cost_variable[0])[cost_variable[1]]
@@ -163,7 +163,7 @@ class PySPModel:
         for _ in model.component_data_objects(pyo.Objective, active=True, descend_into=True):
             break
         else: # no break
-            print("Provided model has no objective; using PySP auto-generated objective")
+            logger.warning("Provided model has no objective; using PySP auto-generated objective")
 
             # attach PySP objective
             leaf_node = tree_scenario.node_list[-1]

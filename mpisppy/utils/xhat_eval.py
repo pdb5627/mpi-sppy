@@ -20,10 +20,10 @@ fullcomm = MPI.COMM_WORLD
 global_rank = fullcomm.Get_rank()
 
 # Could also pass, e.g., sys.stdout instead of a filename
-mpisppy.log.setup_logger("mpisppy.utils.xhat_eval",
+mpisppy.log.setup_logger(__name__,
                          "xhateval.log",
                          level=logging.CRITICAL)                         
-logger = logging.getLogger("mpisppy.utils.xhat_eval")
+logger = logging.getLogger(__name__)
 
 ############################################################################
 class Xhat_Eval(mpisppy.spopt.SPOpt):
@@ -93,9 +93,12 @@ class Xhat_Eval(mpisppy.spopt.SPOpt):
             else:
                 objfct = sputils.find_active_objective(s)
                 if self.verbose:
-                    print ("caller", inspect.stack()[1][3])
-                    print ("E_Obj Scenario {}, prob={}, Obj={}, ObjExpr={}"\
-                           .format(k, s._mpisppy_probability, pyo.value(objfct), objfct.expr))
+                    logger.info(f"caller {inspect.stack()[1][3]}")
+                    logger.info(f"Caller {self.spcomm.__class__.__name__}")
+                    logger.info(f"E_Obj Scenario {k}, "
+                                f"prob={s._mpisppy_probability}, "
+                                f"Obj={pyo.value(objfct)}, "
+                                f"ObjExpr={objfct.expr}")
             self.objs_dict[k] = pyo.value(objfct)
         return(pyomo_solve_time)
 
@@ -136,7 +139,7 @@ class Xhat_Eval(mpisppy.spopt.SPOpt):
         self._lazy_create_solvers()
         def _vb(msg): 
             if verbose and self.cylinder_rank == 0:
-                print ("(rank0) " + msg)
+                logger.info("(rank0) " + msg)
         logger.debug("  early solve_loop for rank={}".format(self.cylinder_rank))
 
         # note that when there is no bundling, scenarios are subproblems
@@ -150,8 +153,8 @@ class Xhat_Eval(mpisppy.spopt.SPOpt):
         
         for k,s in s_source.items():
             if tee:
-                print(f"Tee solve for {k} on global rank {self.global_rank}")
-            logger.debug("  in loop solve_loop k={}, rank={}".format(k, self.cylinder_rank))
+                logger.info(f"Tee solve for {k} on global rank {self.global_rank}")
+            logger.debug(f"  in loop solve_loop k={k}, rank={self.cylinder_rank}")
 
             pyomo_solve_time = self.solve_one(solver_options, k, s,
                                               dtiming=dtiming,
@@ -164,8 +167,8 @@ class Xhat_Eval(mpisppy.spopt.SPOpt):
         if dtiming:
             all_pyomo_solve_times = self.mpicomm.gather(pyomo_solve_time, root=0)
             if self.cylinder_rank == 0:
-                print("Pyomo solve times (seconds):")
-                print("\tmin=%4.2f mean=%4.2f max=%4.2f" %
+                logger.info("Pyomo solve times (seconds):")
+                logger.info("\tmin=%4.2f mean=%4.2f max=%4.2f" %
                       (np.min(all_pyomo_solve_times),
                       np.mean(all_pyomo_solve_times),
                       np.max(all_pyomo_solve_times)))
@@ -385,7 +388,7 @@ class Xhat_Eval(mpisppy.spopt.SPOpt):
             return None
         else:
             if verbose and self.cylinder_rank == 0:
-                print("  Feasible xhat found")
+                logger.info("  Feasible xhat found")
             return self.Eobjective(verbose=verbose)
     
 

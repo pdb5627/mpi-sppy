@@ -52,7 +52,7 @@ class LShapedCutGeneratorData(bc.BendersCutGeneratorData):
         self._subproblem_ndx_map = dict.fromkeys(range(len(self.ls.local_scenario_names)))
         for s in self._subproblem_ndx_map.keys():
             self._subproblem_ndx_map[s] = self.ls.all_scenario_names.index(self.ls.local_scenario_names[s])
-        # print(self._subproblem_ndx_map)
+        # logger.debug(f"subproblem_ndx_map: {self._subproblem_ndx_map}")
         self.all_root_etas = list(self.ls.root.eta.values())
 
     def global_num_subproblems(self):
@@ -60,7 +60,7 @@ class LShapedCutGeneratorData(bc.BendersCutGeneratorData):
 
     def add_subproblem(self, subproblem_fn, subproblem_fn_kwargs, root_eta, subproblem_solver='gurobi_persistent',
                        relax_subproblem_cons=False, subproblem_solver_options=None):
-        # print(self._subproblem_ndx_map)
+        # logger.debug(f"subproblem_ndx_map: {self._subproblem_ndx_map}")
         # self.all_root_etas.append(root_eta)
         # self.global_subproblem_count += 1
         if subproblem_fn_kwargs['scenario_name'] in self.ls.local_scenario_names:

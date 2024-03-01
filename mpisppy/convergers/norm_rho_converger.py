@@ -4,10 +4,15 @@
 # Adapted from the PySP extension adaptive_rho_converger, authored by Gabriel Hackebeil
 
 import math
+import logging
 import mpisppy.convergers.converger
 
 import mpisppy.MPI as MPI
 import numpy as np
+
+
+logger = logging.getLogger(__name__)
+
 
 class NormRhoConverger(mpisppy.convergers.converger.Converger):
 
@@ -46,11 +51,11 @@ class NormRhoConverger(mpisppy.convergers.converger.Converger):
         ret_val = log_rho_norm < self.ph.options['convthresh']
         self.conv = log_rho_norm
         if self._verbose and self.ph.cylinder_rank == 0:
-            print(f"log(|rho|) = {log_rho_norm}")
+            logger.info(f"log(|rho|) = {log_rho_norm}")
             if ret_val:
-                print("Norm rho convergence check passed")
+                logger.info("Norm rho convergence check passed")
             else:
-                print("Adaptive rho convergence check failed "
+                logger.info("Adaptive rho convergence check failed "
                       f"(requires log(|rho|) < {self.ph.options['convthresh']}")
-                print("Continuing PH with updated rho")
+                logger.info("Continuing PH with updated rho")
         return ret_val 

@@ -14,6 +14,8 @@ fullcomm = mpi.COMM_WORLD
 global_rank = fullcomm.Get_rank()
 fullcom_n_proc = fullcomm.Get_size()
 
+logger = logging.getLogger(__name__)
+
 
 ############################################################################
 class XhatSpecificInnerBound(spoke.InnerBoundNonantSpoke):
@@ -47,9 +49,9 @@ class XhatSpecificInnerBound(spoke.InnerBoundNonantSpoke):
         self.opt._update_E1()  
         if (abs(1 - self.opt.E1) > self.opt.E1_tolerance):
             if self.opt.cylinder_rank == 0:
-                print("ERROR")
-                print("Total probability of scenarios was ", self.opt.E1)
-                print("E1_tolerance = ", self.opt.E1_tolerance)
+                logger.error("ERROR")
+                logger.error(f"Total probability of scenarios was {self.opt.E1}")
+                logger.error(f"E1_tolerance = {self.opt.E1_tolerance}")
             quit()
 
         ### end iter0 stuff
@@ -64,9 +66,8 @@ class XhatSpecificInnerBound(spoke.InnerBoundNonantSpoke):
         Entry point. Communicates with the optimization companion.
 
         """
-        dtm = logging.getLogger(f'dtm{global_rank}')
         verbose = self.opt.options["verbose"] # typing aid  
-        logging.debug("Enter xhatspecific main on rank {}".format(global_rank))
+        logger.debug(f"Enter xhatspecific main on rank {global_rank}")
 
         # What to try does not change, but the data in the scenarios should
         xhat_scenario_dict = self.opt.options["xhat_specific_options"]\
@@ -76,17 +77,13 @@ class XhatSpecificInnerBound(spoke.InnerBoundNonantSpoke):
 
         ib_iter = 1  # ib is for inner bound
         got_kill_signal = False
-        while (not self.got_kill_signal()):
-            logging.debug('   IB loop iter={} on global rank {}'.\
-                          format(ib_iter, global_rank))
-            # _log_values(ib_iter, self._locals, dtm)
-
-            logging.debug('   IB got from opt on global rank {}'.\
-                          format(global_rank))
-            if (self.new_nonants):
-                logging.debug('  and its new! on global rank {}'.\
-                              format(global_rank))
-                logging.debug('  localnonants={}'.format(str(self.localnonants)))
+        while not self.got_kill_signal():
+            if (ib_iter - 1) % 10000 == 0:
+                logger.debug(f"   IB loop iter={ib_iter} on {global_rank=}")
+                logger.debug(f"   IB got from opt on {global_rank=}")
+            if self.new_nonants:
+                logger.debug(f"  and its new! on {global_rank=}")
+                logger.debug(f"  localnonants={self.localnonants}")
 
                 self.opt._put_nonant_cache(self.localnonants)  # don't really need all caches
                 self.opt._restore_nonants()
@@ -96,7 +93,7 @@ class XhatSpecificInnerBound(spoke.InnerBoundNonantSpoke):
 
             ib_iter += 1
 
-        dtm.debug(f'IB specific thread ran {ib_iter} iterations\n')
+        logger.debug(f'IB specific thread ran {ib_iter} iterations')
     
 if __name__ == "__main__":
     print("no main.")

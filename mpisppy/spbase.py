@@ -15,8 +15,7 @@ from mpisppy import global_toc
 
 from mpisppy import MPI
 
-logger = logging.getLogger("SPBase")
-logger.setLevel(logging.WARN)
+logger = logging.getLogger(__name__)
 
 
 class SPBase:
@@ -226,7 +225,7 @@ class SPBase:
         scen_count = len(self.all_scenario_names)
 
         if self.options["verbose"] and self.cylinder_rank == 0:
-            print("(rank0)", self.options["bundles_per_rank"], "bundles per rank")
+            logger.info(f"{self.options['bundles_per_rank']} bundles per rank")
         if self.n_proc * self.options["bundles_per_rank"] > scen_count:
             raise RuntimeError(
                 "Not enough scenarios to satisfy the bundles_per_rank requirement"
@@ -286,8 +285,8 @@ class SPBase:
             )
             if self.cylinder_rank == 0:
                 aict = [ict for l_ict in all_instance_creation_times for ict in l_ict]
-                print("Scenario instance creation times:")
-                print(f"\tmin={np.min(aict):4.2f} mean={np.mean(aict):4.2f} max={np.max(aict):4.2f}")
+                logger.info("Scenario instance creation times:")
+                logger.info(f"\tmin={np.min(aict):4.2f} mean={np.mean(aict):4.2f} max={np.max(aict):4.2f}")
         self.scenarios_constructed = True
 
     def _attach_nonant_indices(self):
@@ -431,7 +430,7 @@ class SPBase:
         """
 
         if verbose and self.cylinder_rank == 0:
-            print ("variable_probability set",didit,"and skipped",skipped)
+            logger.debug(f"variable_probability set {didit} and skipped {skipped}")
 
         if not self.options.get('do_not_check_variable_probabilities', False):
             self._check_variable_probabilities_sum(verbose)
@@ -516,7 +515,11 @@ class SPBase:
             if pspec is None or pspec == "uniform":
                 prob = 1./len(self.all_scenario_names)
                 if self.cylinder_rank == 0 and pspec is None:
-                    print(f"Did not find _mpisppy_probability, assuming uniform probability {prob} (avoid this message by assigning a probability or the string 'uniform' to _mpisppy_probability on the scenario model object)")
+                    logger.warning(
+                        "Did not find _mpisppy_probability, assuming uniform probability "
+                        f"{prob} (avoid this message by assigning a probability or the "
+                        "string 'uniform' to _mpisppy_probability on the scenario model object)"
+                    )
                 scenario._mpisppy_probability = prob
             if not hasattr(scenario, "_mpisppy_node_list"):
                 raise RuntimeError(f"_mpisppy_node_list not found on scenario {sname}")
@@ -582,7 +585,7 @@ class SPBase:
 
 
     def report_var_values_at_rank0(self, header="", print_zero_prob_values=False):
-        """ Pretty-print the values and associated statistics for
+        """ Pretty-print to log the values and associated statistics for
         non-anticipative variables across all scenarios. """
 
         var_values = self.gather_var_values_to_rank0(get_zero_prob_values=print_zero_prob_values)
@@ -590,7 +593,7 @@ class SPBase:
         if self.cylinder_rank == 0:
 
             if len(header) != 0:
-                print(header)
+                logger.info(header)
 
             scenario_names = sorted(set(x for (x,y) in var_values))
             max_scenario_name_len = max(len(s) for s in scenario_names)
@@ -599,21 +602,21 @@ class SPBase:
             # the "10" below is a reasonable minimum for floating-point output
             value_field_len = max(10, max_scenario_name_len)
 
-            print("{0: <{width}s} | ".format("", width=max_variable_name_len), end='')
+            col_strs = ["{0: <{width}s} | ".format("", width=max_variable_name_len)]
             for this_scenario in scenario_names:
-                print("{0: ^{width}s} ".format(this_scenario, width=value_field_len), end='')
-            print("")
+                col_strs.append("{0: ^{width}s} ".format(this_scenario, width=value_field_len))
+            logger.info("".join(col_strs))
 
             for this_var in variable_names:
-                print("{0: <{width}} | ".format(this_var, width=max_variable_name_len), end='')
+                col_strs = ["{0: <{width}} | ".format(this_var, width=max_variable_name_len)]
                 for this_scenario in scenario_names:
                     this_var_value = var_values[this_scenario, this_var]
                     if (this_var_value == None) and (not print_zero_prob_values):
-                        print("{0: ^{width}s}".format("-", width=value_field_len), end='')
+                        col_strs.append("{0: ^{width}s}".format("-", width=value_field_len))
                     else:
-                        print("{0: {width}.4f}".format(this_var_value, width=value_field_len), end='')
-                    print(" ", end='')
-                print("")
+                        col_strs.append("{0: {width}.4f}".format(this_var_value, width=value_field_len))
+                    col_strs.append(" ")
+                logger.info("".join(col_strs))
 
     def write_first_stage_solution(self, file_name,
             first_stage_solution_writer=sputils.first_stage_nonant_writer):

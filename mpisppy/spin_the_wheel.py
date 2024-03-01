@@ -1,6 +1,7 @@
 # Copyright 2020 by B. Knueven, D. Mildebrath, C. Muir, J-P Watson, and D.L. Woodruff
 # This software is distributed under the 3-clause BSD License.
 
+import logging
 from pyomo.environ import value
 from mpisppy import haveMPI, global_toc, MPI
 
@@ -8,6 +9,7 @@ from mpisppy.utils.sputils import (
         first_stage_nonant_writer,
         scenario_tree_solution_writer,
         )
+
 
 class WheelSpinner:
 
@@ -30,6 +32,8 @@ class WheelSpinner:
         self.list_of_spoke_dict = list_of_spoke_dict
 
         self._ran = False
+
+        self.logger = logging.getLogger(__name__)
 
     def spin(self, comm_world=None):
         return self.run(comm_world=comm_world)
@@ -110,10 +114,15 @@ class WheelSpinner:
         # Create the SPCommunicator object (hub/spoke) with
         # the appropriate SPBase object attached
         if strata_rank == 0: # Hub
+            self.logger.debug(f"Creating hub of class {sp_class.__name__}")
             spcomm = sp_class(opt, fullcomm, strata_comm, cylinder_comm,
                               list_of_spoke_dict, **sp_kwargs) 
         else: # Spokes
-            spcomm = sp_class(opt, fullcomm, strata_comm, cylinder_comm, **sp_kwargs) 
+            self.logger.debug(f"Creating spoke of class {sp_class.__name__}")
+            spcomm = sp_class(opt, fullcomm, strata_comm, cylinder_comm, **sp_kwargs)
+
+        self.logger.debug(f"SPCommunicator (spcomm) object args: {sp_kwargs}")
+        self.logger.debug(f"SPBase (opt) object args: {opt_kwargs}")
     
         # Create the windows, run main(), destroy the windows
         spcomm.make_windows()

@@ -8,16 +8,22 @@ import sys
 import os
 import re
 import time
+import logging
+import warnings
 import numpy as np
 import mpisppy.scenario_tree as scenario_tree
 from pyomo.core import Objective
+
+
+logger = logging.getLogger(__name__)
+
 
 from mpisppy import MPI, haveMPI
 global_rank = MPI.COMM_WORLD.Get_rank()
 from pyomo.core.expr.numeric_expr import LinearExpression
 from pyomo.opt import SolutionStatus, TerminationCondition
 
-from mpisppy import tt_timer, global_toc
+from mpisppy import global_toc
 
 def not_good_enough_results(results):
     return (results is None) or (len(results.solution) == 0) or \
@@ -99,8 +105,8 @@ def get_objs(scenario_instance, allow_none=False):
         raise RuntimeError(f"Scenario {scenario_instance.name} has no active "
                            "objective functions.")
     if (len(scenario_objs) > 1):
-        print("WARNING: Scenario", sname, "has multiple active "
-              "objectives. Selecting the first objective.")
+        logger.warning(f"WARNING: Scenario {scenario_instance.name} has multiple active "
+                       "objectives. Selecting the first objective.")
     return scenario_objs
 
 
@@ -178,7 +184,7 @@ def create_EF(scenario_names, scenario_creator, scenario_creator_kwargs=None,
         scenario_instance = list(scen_dict.values())[0]
         scenario_instance._ef_scenario_names = list(scen_dict.keys())
         if not suppress_warnings:
-            print("WARNING: passed single scenario to create_EF()")
+            logger.warning("WARNING: passed single scenario to create_EF()")
         # special code to patch in ref_vars
         scenario_instance.ref_vars = dict()
         scenario_instance._nlens = {node.name: len(node.nonant_vardata_list) 
@@ -207,8 +213,8 @@ def create_EF(scenario_names, scenario_creator, scenario_creator_kwargs=None,
         for scen in scen_dict.values():
             scen._mpisppy_probability = 1 / len(scen_dict)
         if not suppress_warnings and not uniform_specified:
-            print('WARNING: At least one scenario is missing _mpisppy_probability attribute.',
-                  'Assuming equally-likely scenarios...')
+            logger.warning('WARNING: At least one scenario is missing _mpisppy_probability attribute.'
+                           'Assuming equally-likely scenarios...')
 
     EF_instance = _create_EF_from_scen_dict(scen_dict,
                                             EF_name=EF_name,
@@ -432,7 +438,7 @@ def nonant_cache_from_ef(ef,verbose=False):
             xvar = pyo.value(ef.ref_vars[(ndn,i)])
             nonant_cache[ndn].append(xvar)
             if verbose:
-                print("barfoo", i, xvar)
+                logger.debug(f"barfoo {i=}, {xvar=}")
             i+=1
     return nonant_cache
 
@@ -729,7 +735,7 @@ class _TreeNode():
                                            child_leaf_dict, childname))
                 first += child_scens_num
             if last != scenlast:
-                print("numscens, last, scenlast", numscens, last, scenlast)
+                logger.info(f"{numscens=}, {last=}, {scenlast=}")
                 raise RuntimeError(f"Tree node did not initialize correctly for node {name}")
 
 
@@ -902,7 +908,7 @@ def check4losses(numscens, branching_factors,
     missingsome = False
     for scen, there in enumerate(present):
         if not there:
-            print(f"Scenario {scen} is not in slices")
+            logger.error(f"Scenario {scen} is not in slices")
             missingsome = True
     if missingsome:
         raise RuntimeError("Internal error: slices is not correct")
@@ -919,21 +925,22 @@ def check4losses(numscens, branching_factors,
     for stage in stagepresents:
         for scen, there in enumerate(stagepresents[stage]):
             if not there:
-                print(f"Scenario number {scen} missing from stage {stage}.")
+                logging.error(f"Scenario number {scen} missing from stage {stage}.")
                 missingsome = True
     if missingsome:
         raise RuntimeError("Internal error: scenario_name_to_rank")
-    print("check4losses: OK")
+    logger.info("check4losses: OK")
 
     
 def disable_tictoc_output():
-    f = open(os.devnull,"w")
-    tt_timer._ostream = f
+    warnings.warn("tictoc timer is no longer used for status messages, so this does nothing."
+                  "Messages are routed through the Python logging system instead.",
+                  DeprecationWarning)
 
 def reenable_tictoc_output():
-    # Primarily to re-enable after a disable
-    tt_timer._ostream.close()
-    tt_timer._ostream = sys.stdout
+    warnings.warn("tictoc timer is no longer used for status messages, so this does nothing."
+                  "Messages are routed through the Python logging system instead.",
+                  DeprecationWarning)
 
     
 def find_active_objective(pyomomodel):

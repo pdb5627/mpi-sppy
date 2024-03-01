@@ -2,6 +2,8 @@
 # This software is distributed under the 3-clause BSD License.
 
 import re
+import logging
+from io import StringIO
 import pyomo.environ as pyo
 
 # NOTE: a caller attaches the comms (e.g. pre_iter0)
@@ -9,6 +11,9 @@ import pyomo.environ as pyo
 import mpisppy.extensions.extension
 import mpisppy.utils.wxbarutils as wxbarutils
 import mpisppy.utils.sputils as sputils
+
+
+logger = logging.getLogger(__name__)
 
 
 class XhatBase(mpisppy.extensions.extension.Extension):
@@ -33,8 +38,8 @@ class XhatBase(mpisppy.extensions.extension.Extension):
 
         self.scenario_name_to_rank = opt.scenario_names_to_rank
         # dict: scenario names --> LOCAL rank number (needed mainly for xhat)
-        
-     #**********
+
+    # **********
     def _try_one(self, snamedict, solver_options=None, verbose=False,
                  restore_nonants=True, stage2EFsolvern=None, branching_factors=None):
         """ try the scenario named sname in self.opt.local_scenarios
@@ -68,7 +73,7 @@ class XhatBase(mpisppy.extensions.extension.Extension):
             sopt = dict(solver_options)
             Tee = sopt["Tee"]
             del sopt["Tee"]
-        
+
         # For now, we are going to treat two-stage as a special case
         if len(snamedict) == 1:
             sname = snamedict["ROOT"]  # also serves as an assert
@@ -79,10 +84,11 @@ class XhatBase(mpisppy.extensions.extension.Extension):
             src_rank = self.scenario_name_to_rank["ROOT"][sname]
             try:
                 xhats["ROOT"] = self.comms["ROOT"].bcast(xhat, root=src_rank)
+                if self.cylinder_rank == src_rank:
+                    logger.info(f"(xhatbase) broadcasted xhat={xhats['ROOT']}")
             except:
-                print("rank=",self.cylinder_rank, "xhats bcast failed on src_rank={}"\
-                      .format(src_rank))
-                print("root comm size={}".format(self.comms["ROOT"].size))
+                logger.error(f"rank={self.cylinder_rank} xhats bcast failed on {src_rank=}")
+                logger.error(f"root comm size={self.comms['ROOT'].size}")
                 raise
         elif stage2EFsolvern is None:  # regular multi-stage
             # assemble parts and put it in xhats
@@ -109,17 +115,15 @@ class XhatBase(mpisppy.extensions.extension.Extension):
                                       for i in range(nlens[ndn])]
             for ndn in cistart:  # local nodes
                 if snamedict[ndn] not in self.scenario_name_to_rank[ndn]:
-                    print (f"For ndn={ndn}, snamedict[ndn] not in "
-                           "self.scenario_name_to_rank[ndn]")
-                    print(f"snamedict[ndn]={snamedict[ndn]}")
-                    print(f"self.scenario_name_to_rank[ndn]={self.scenario_name_to_rank[ndn]}")
+                    logger.error(f"For {ndn=}, snamedict[ndn] not in self.scenario_name_to_rank[ndn]")
+                    logger.error(f"{snamedict[ndn]=}")
+                    logger.error(f"{self.scenario_name_to_rank[ndn]=}")
                     raise RuntimeError("Bad scenario selection for xhat")
                 src_rank = self.scenario_name_to_rank[ndn][snamedict[ndn]]
                 try:
                     xhats[ndn] = self.comms[ndn].bcast(xhats[ndn], root=src_rank)
                 except:
-                    print("rank=",self.cylinder_rank, "xhats bcast failed on ndn={}, src_rank={}"\
-                          .format(ndn,src_rank))
+                    logger.error(f"rank={self.cylinder_rank} xhats bcast failed on {ndn=}, {src_rank=}")
                     raise
         else:  # we are multi-stage with stage2ef
             # Form an ef for all local scenarios and then fix the first stage
@@ -134,10 +138,11 @@ class XhatBase(mpisppy.extensions.extension.Extension):
             src_rank = self.scenario_name_to_rank["ROOT"][sname]
             try:
                 xhats["ROOT"] = self.comms["ROOT"].bcast(xhat, root=src_rank)
+                if self.cylinder_rank == src_rank:
+                    logger.info(f"(xhatbase) broadcasted xhat={xhats['ROOT']}")
             except:
-                print("rank=",self.cylinder_rank, "xhats bcast failed on src_rank={}"\
-                      .format(src_rank))
-                print("root comm size={}".format(self.comms["ROOT"].size))
+                logger.error(f"rank={self.cylinder_rank} xhats bcast failed on {src_rank=}")
+                logger.error(f"root comm size={self.comms['ROOT'].size}")
                 raise
             # now form the EF for the appropriate number of second-stage scenario tree nodes
             # Use the branching factors to figure out how many second-stage nodes.
@@ -161,7 +166,7 @@ class XhatBase(mpisppy.extensions.extension.Extension):
                             local_2ndns[ndn] = {k: s}
                         local_2ndns[ndn][k] = s
             if len(local_2ndns) != nodes_per_rank:
-                print("stage2ef failure: nodes_per_rank=",nodes_per_rank, "local_2ndns=",local_2ndns)
+                logger.error(f"stage2ef failure: {nodes_per_rank=} {local_2ndns=}")
                 raise RuntimeError("stagecnt assumes regular scenario tree and standard _ node naming")
             # create an EF for each second stage node and solve with fixed nonant
             # TBD: factor out the EF creation!
@@ -188,13 +193,18 @@ class XhatBase(mpisppy.extensions.extension.Extension):
                     sputils.reactivate_objs(s)
                 # if you hit infeas, return None
                 if not pyo.check_optimal_termination(results):
-                   self.opt._restore_nonants()
-                   return None
-               
+                    self.opt._restore_nonants()
+                    return None
+
             # feasible xhat found, so finish up 2EF part and return
             if verbose and src_rank == self.cylinder_rank:
-                print("   Feasible xhat found:")
-                self.opt.local_scenarios[sname].pprint()
+                logger.info("   Feasible xhat found:")
+                # Printing the whole model generates a LOT of log output
+                # pprint_output = StringIO()
+                # self.opt.local_scenarios[sname].pprint(pprint_output)
+                # for l in pprint_output.getvalue().splitlines():
+                #     logger.info(f"   {l}")
+                # pprint_output.close()
             # get the global obj
             obj = self.opt.Eobjective(verbose=verbose)
             if restore_nonants:
@@ -221,14 +231,19 @@ class XhatBase(mpisppy.extensions.extension.Extension):
             return None
         else:
             if verbose and src_rank == self.cylinder_rank:
-                print("   Feasible xhat found:")
-                self.opt.local_scenarios[sname].pprint()
+                logger.info("   Feasible xhat found:")
+                # pprint_output = StringIO()
+                # self.opt.local_scenarios[sname].pprint(pprint_output)
+                # for l in pprint_output.getvalue().splitlines():
+                #     logger.info(f"   {l}")
+                # pprint_output.close()
+            logger.debug(f"Verbose setting to {self.__class__.__name__} is {verbose}")
             obj = self.opt.Eobjective(verbose=verbose)
             if restore_nonants:
                 self.opt._restore_nonants()
             return obj
 
-    #**********
+    # **********
     def csv_nonants(self, snamedict, fname):
         """ write the non-ants in csv format to files based on the file name
             (we will over-write files if they already exists)
@@ -252,7 +267,7 @@ class XhatBase(mpisppy.extensions.extension.Extension):
                     f.write(', "'+vardata.name+'", '+str(vardata._value))
                 f.write("\n")
 
-    #**********
+    # **********
     def csv_allvars(self, snamedict, fname):
         """ write all Vars in csv format to files based on the file name
             (we will over-write files if they already exists)
@@ -295,8 +310,7 @@ class XhatBase(mpisppy.extensions.extension.Extension):
         if (obj is not None) and (self.opt.spcomm is not None):
             self.opt.spcomm.BestInnerBound = self.opt.spcomm.InnerBoundUpdate(obj, char='E')
         if self.cylinder_rank == 0 and self.verbose:
-            print ("****", extname ,"Used scenarios",
-                   str(snamedict),"to get xhat Eobj=",obj)
+            logger.info(f"**** {extname} Used scenarios {snamedict} to get xhat Eobj={obj}")
 
         if "csvname" in self.options:
             self.csv_nonants(snamedict, self.options["csvname"])
@@ -310,7 +324,7 @@ class XhatBase(mpisppy.extensions.extension.Extension):
     def post_iter0(self):
         # the base class needs this
         self.comms = self.opt.comms
-        
+
 """
 May 2020, DLW
 Simple tree with branching factors (arbitrary trees later)

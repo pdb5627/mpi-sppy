@@ -18,8 +18,7 @@ from mpisppy import global_toc
 from mpisppy.spbase import SPBase
 import mpisppy.utils.sputils as sputils
 
-logger = logging.getLogger("SPOpt")
-logger.setLevel(logging.WARN)
+logger = logging.getLogger(__name__)
 
 class SPOpt(SPBase):
     """ Defines optimization methods for hubs and spokes """
@@ -122,7 +121,7 @@ class SPOpt(SPBase):
 
         def _vb(msg):
             if verbose and self.cylinder_rank == 0:
-                print ("(rank0) " + msg)
+                logger.info("(rank0) " + msg)
 
         # if using a persistent solver plugin,
         # re-compile the objective due to changed weights and x-bars
@@ -180,10 +179,10 @@ class SPOpt(SPBase):
                 name = self.__class__.__name__
                 if self.spcomm:
                     name = self.spcomm.__class__.__name__
-                print (f"[{name}] Solve failed for scenario {s.name}")
+                logger.error(f"[{name}] Solve failed for scenario {s.name}")
                 if results is not None:
-                    print ("status=", results.solver.status)
-                    print ("TerminationCondition=",
+                    logger.error("status=", results.solver.status)
+                    logger.error("TerminationCondition=",
                            results.solver.termination_condition)
 
             if solver_exception is not None:
@@ -264,9 +263,9 @@ class SPOpt(SPBase):
         """
         def _vb(msg):
             if verbose and self.cylinder_rank == 0:
-                print ("(rank0) " + msg)
+                logger.info("(rank0) " + msg)
         _vb("Entering solve_loop function.")
-        logger.debug("  early solve_loop for rank={}".format(self.cylinder_rank))
+        logger.debug(f"  early solve_loop for rank={self.cylinder_rank}")
 
         if self.extensions is not None:
                 self.extobject.pre_solve_loop()
@@ -278,9 +277,9 @@ class SPOpt(SPBase):
             s_source = self.local_subproblems
         pyomo_solve_times = list()
         for k,s in s_source.items():
-            logger.debug("  in loop solve_loop k={}, rank={}".format(k, self.cylinder_rank))
+            logger.debug(f"  in loop solve_loop {k=}, rank={self.cylinder_rank}")
             if tee:
-                print(f"Tee solve for {k} on global rank {self.global_rank}")
+                logger.info(f"Tee solve for {k} on global rank {self.global_rank}")
             pyomo_solve_times.append(self.solve_one(solver_options, k, s,
                                               dtiming=dtiming,
                                               verbose=verbose,
@@ -296,8 +295,8 @@ class SPOpt(SPBase):
             all_pyomo_solve_times = self.mpicomm.gather(pyomo_solve_times, root=0)
             if self.cylinder_rank == 0:
                 apst = [pst for l_pst in all_pyomo_solve_times for pst in l_pst]
-                print("Pyomo solve times (seconds):")
-                print("\tmin=%4.2f@%d mean=%4.2f max=%4.2f@%d" %
+                logger.info("Pyomo solve times (seconds):")
+                logger.info("\tmin=%4.2f@%d mean=%4.2f max=%4.2f@%d" %
                       (np.min(apst), np.argmin(apst),
                        np.mean(apst),
                        np.max(apst), np.argmax(apst)))
@@ -328,9 +327,9 @@ class SPOpt(SPBase):
                 objfct = sputils.find_active_objective(s)
             local_Eobjs.append(s._mpisppy_probability * pyo.value(objfct))
             if verbose:
-                print ("caller", inspect.stack()[1][3])
-                print ("E_Obj Scenario {}, prob={}, Obj={}, ObjExpr={}"\
-                       .format(k, s._mpisppy_probability, pyo.value(objfct), objfct.expr))
+                logger.debug(f"caller {inspect.stack()[1][3]}")
+                logger.debug(f"E_Obj Scenario {k}, prob={s._mpisppy_probability}, "
+                             f"Obj={pyo.value(objfct)}, ObjExpr={objfct.expr}")
 
         local_Eobj = np.array([math.fsum(local_Eobjs)])
         global_Eobj = np.zeros(1)
@@ -359,17 +358,17 @@ class SPOpt(SPBase):
         """
         local_Ebounds = []
         for k,s in self.local_subproblems.items():
-            logger.debug("  in loop Ebound k={}, rank={}".format(k, self.cylinder_rank))
+            logger.debug(f"  in loop Ebound {k=}, rank={self.cylinder_rank}")
             try:
                 eb = s._mpisppy_probability * float(s._mpisppy_data.outer_bound)
             except:
-                print(f"eb calc failed for {s._mpisppy_probability} * {s._mpisppy_data.outer_bound}")
+                logger.error(f"eb calc failed for {s._mpisppy_probability} * {s._mpisppy_data.outer_bound}")
                 raise
             local_Ebounds.append(eb)
             if verbose:
-                print ("caller", inspect.stack()[1][3])
-                print ("E_Bound Scenario {}, prob={}, bound={}"\
-                       .format(k, s._mpisppy_probability, s._mpisppy_data.outer_bound))
+                logger.debug(f"caller {inspect.stack()[1][3]}")
+                logger.debug(f"E_Bound Scenario {k}, prob={s._mpisppy_probability}, "
+                             f"bound={s._mpisppy_data.outer_bound}")
 
         if extra_sum_terms is not None:
             local_Ebound_list = [math.fsum(local_Ebounds)] + list(extra_sum_terms)
@@ -691,7 +690,7 @@ class SPOpt(SPBase):
         """
         for k,s in self.local_scenarios.items():
             if hasattr(s,"_PySP_original_fixedness"):
-                print ("ERROR: Attempt to replace original nonants")
+                logger.error("ERROR: Attempt to replace original nonants")
                 raise
             if not hasattr(s._mpisppy_data,"nonant_cache"):
                 # uses nonant cache to signal other things have not
@@ -726,7 +725,7 @@ class SPOpt(SPBase):
                 if (sputils.is_persistent(s._solver_plugin)):
                     persistent_solver = s._solver_plugin
             else:
-                print("restore_original_nonants called for a bundle")
+                logger.info("restore_original_nonants called for a bundle")
                 raise
 
             for ci, vardata in enumerate(s._mpisppy_data.nonant_indices.values()):
@@ -779,8 +778,9 @@ class SPOpt(SPBase):
         if len(scen_dict) == 1:
             sname, scenario_instance = list(scen_dict.items())[0]
             if EF_name is not None:
-                print ("WARNING: EF_name="+EF_name+" not used; singleton="+sname)
-                print ("MAJOR WARNING: a bundle of size one encountered; if you try to compute bounds it might crash (Feb 2019)")
+                logger.warning(f"WARNING: {EF_name=} not used; singleton={sname}")
+                logger.warning("MAJOR WARNING: a bundle of size one encountered; "
+                               "if you try to compute bounds it might crash (Feb 2019)")
             return scenario_instance
 
         # The individual scenario instances are sub-blocks of the binding
@@ -814,10 +814,10 @@ class SPOpt(SPBase):
             rank_local = self.cylinder_rank
             for bun in self.names_in_bundles[rank_local]:
                 sdict = dict()
-                bname = "rank" + str(self.cylinder_rank) + "bundle" + str(bun)
+                bname = f"rank{self.cylinder_rank}bundle{bun}"
                 for sname in self.names_in_bundles[rank_local][bun]:
                     if (verbose and self.cylinder_rank==0):
-                        print ("bundling "+sname+" into "+bname)
+                        logger.debug(f"bundling {sname} into {bname}")
                     scen = self.local_scenarios[sname]
                     scen._mpisppy_data.bundlename = bname
                     sdict[sname] = scen
@@ -859,8 +859,8 @@ class SPOpt(SPBase):
                                                      root=0)
             if self.cylinder_rank == 0:
                 asit = [sit for l_sit in all_set_instance_times for sit in l_sit]
-                print("Set instance times:")
-                print("\tmin=%4.2f mean=%4.2f max=%4.2f" %
+                logger.info("Set instance times:")
+                logger.info("\tmin=%4.2f mean=%4.2f max=%4.2f" %
                       (np.min(asit), np.mean(asit), np.max(asit)))
 
 
@@ -881,19 +881,23 @@ def set_instance_retry(subproblem, solver_plugin, subproblem_name):
         try:
             solver_plugin.set_instance(subproblem)
             if num_retry_attempts > 0:
-                print("Acquired solver license (call to set_instance() for scenario=%s) after %d retry attempts" % (sname, num_retry_attempts))
+                logger.info("Acquired solver license (call to set_instance() for "
+                            f"scenario={sname}) after {num_retry_attempts} retry attempts")
             break
         # pyomo presently has no general way to trap a license acquisition
         # error - so we're stuck with trapping on "any" exception. not ideal.
         except:
             if num_retry_attempts == 0:
-                print("Failed to acquire solver license (call to set_instance() for scenario=%s) after first attempt" % (sname))
+                logger.error("Failed to acquire solver license (call to set_instance() for "
+                             f"scenario={sname}) after first attempt")
             else:
-                print("Failed to acquire solver license (call to set_instance() for scenario=%s) after %d retry attempts" % (sname, num_retry_attempts))
+                logger.error("Failed to acquire solver license (call to set_instance() for "
+                             f"scenario={sname}) after {num_retry_attempts} retry attempts")
             if num_retry_attempts == MAX_ACQUIRE_LICENSE_RETRY_ATTEMPTS:
-                raise RuntimeError("Failed to acquire solver license - call to set_instance() for scenario=%s failed after %d retry attempts" % (sname, num_retry_attempts))
+                raise RuntimeError("Failed to acquire solver license - call to set_instance() for "
+                                   f"scenario={sname} failed after {num_retry_attempts} retry attempts")
             else:
                 sleep_time = random.random()
-                print(f"Sleeping for {sleep_time:.2f} seconds before re-attempting")
+                logger.info(f"Sleeping for {sleep_time:.2f} seconds before re-attempting")
                 time.sleep(sleep_time)
                 num_retry_attempts += 1

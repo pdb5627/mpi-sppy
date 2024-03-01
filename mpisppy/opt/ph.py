@@ -4,7 +4,12 @@
 
 import mpisppy.phbase
 import shutil
+import logging
 import mpisppy.MPI as mpi
+
+
+logger = logging.getLogger(__name__)
+
 
 # decorator snarfed from stack overflow - allows per-rank profile output file generation.
 def profile(filename=None, comm=mpi.COMM_WORLD):
@@ -54,10 +59,10 @@ class PH(mpisppy.phbase.PHBase):
         self.subproblem_creation(verbose)
 
         if (verbose):
-            print('Calling PH Iter0 on global rank {}'.format(global_rank))
+            logger.info(f"Calling PH Iter0 on {global_rank=}")
         trivial_bound = self.Iter0()
         if (verbose):
-            print ('Completed PH Iter0 on global rank {}'.format(global_rank))
+            logger.info(f"Completed PH Iter0 on {global_rank=}")
         if ('asynchronousPH' in self.options) and (self.options['asynchronousPH']):
             raise RuntimeError("asynchronousPH is deprecated; use APH")
 
@@ -116,7 +121,7 @@ if __name__ == "__main__":
             ph_converger=FractionalConverger,
             rho_setter=None)
     conv, obj, bnd = ph.ph_main()
-    print ("Quitting Early.")
+    print("Quitting Early.")
     quit()
 
     from mpisppy.extensions.diagnoser import Diagnoser
@@ -130,7 +135,7 @@ if __name__ == "__main__":
     if global_rank == 0:
         try:
             shutil.rmtree("delme_diagdir")
-            print ("...deleted delme_diagdir")
+            print("...deleted delme_diagdir")
         except:
             pass
     ph.options["diagnoser_options"] = {"diagnoser_outdir": "delme_diagdir"}
@@ -155,12 +160,12 @@ if __name__ == "__main__":
     conv, obj, bnd = ph.ph_main()
 
     if global_rank == 0:
-        print ("E[obj] for converged solution (probably NOT non-anticipative)",
+        print("E[obj] for converged solution (probably NOT non-anticipative)",
                obj)
 
     dopts = sputils.option_string_to_dict("mipgap=0.001")
     objbound = ph.post_solve_bound(solver_options=dopts, verbose=False)
     if global_rank == 0:
-        print ("**** Lagrangian objective function bound=",objbound)
-        print ("(probably converged way too early, BTW)")
+        print("**** Lagrangian objective function bound=",objbound)
+        print("(probably converged way too early, BTW)")
    

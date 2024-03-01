@@ -35,12 +35,6 @@ import mpisppy.utils.find_rho as find_rho
 import mpisppy.phbase as phbase
 
 
-# Could also pass, e.g., sys.stdout instead of a filename
-"""mpisppy.log.setup_logger("mpisppy.utils.find_grad",
-                         "findgrad.log",
-                         level=logging.CRITICAL)                         
-logger = logging.getLogger("mpisppy.utils.find_grad")"""
-
 ############################################################################
 class Find_Grad():
     """Interface to compute and write gradient cost

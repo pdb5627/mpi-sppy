@@ -1,10 +1,15 @@
 import numpy as np
 import os
+import logging
 import pandas as pd
 import matplotlib.pyplot as plt
 import mpisppy.convergers.converger
 from mpisppy import MPI
 from mpisppy.extensions.phtracker import TrackedData
+
+
+logger = logging.getLogger(__name__)
+
 
 class PrimalDualConverger(mpisppy.convergers.converger.Converger):
     """ Convergence checker for the primal-dual metrics.
@@ -124,12 +129,12 @@ class PrimalDualConverger(mpisppy.convergers.converger.Converger):
         ret_val = max(primal_gap, dual_gap) <= self.convergence_threshold
 
         if self._verbose and self._rank == 0:
-            print(f"primal gap = {round(primal_gap, 5)}, dual gap = {round(dual_gap, 5)}")
+            logger.info(f"primal gap = {primal_gap:.5f}, dual gap = {dual_gap:.5f}")
 
             if ret_val:
-                print("Dual convergence check passed")
+                logger.info("Dual convergence check passed")
             else:
-                print("Dual convergence check failed "
+                logger.info("Dual convergence check failed "
                       f"(requires primal + dual gaps) <= {self.convergence_threshold}")
         if self.tracking and self._rank == 0:
             self.tracker.add_row([self._ph._PHIter, primal_gap, dual_gap])
