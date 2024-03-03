@@ -3,3 +3,4 @@ scipy
 pandas
 mpi4py>=3.0.3
 pyomo>=6.2
+pyyaml

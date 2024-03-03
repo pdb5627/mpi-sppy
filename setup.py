@@ -33,6 +33,7 @@ setup(
         'numpy',
         'scipy',
         'pyomo>=6.4',
+        'pyyaml'
     ],
     extras_require={
         'doc': [
