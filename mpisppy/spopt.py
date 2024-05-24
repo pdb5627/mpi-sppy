@@ -17,6 +17,7 @@ from pyomo.opt import SolverFactory
 from mpisppy import global_toc
 from mpisppy.spbase import SPBase
 import mpisppy.utils.sputils as sputils
+from mpisppy.log import tee_to_log
 
 logger = logging.getLogger(__name__)
 
@@ -154,18 +155,18 @@ class SPOpt(SPBase):
                 s._solver_plugin.options[option_key] = option_value
 
         solve_keyword_args = dict()
-        if self.cylinder_rank == 0:
-            if tee is not None and tee is True:
-                solve_keyword_args["tee"] = True
+        if tee is not None and tee is True:
+            solve_keyword_args["tee"] = True
         if (sputils.is_persistent(s._solver_plugin)):
             solve_keyword_args["save_results"] = False
         elif disable_pyomo_signal_handling:
             solve_keyword_args["use_signal_handling"] = False
 
         try:
-            results = s._solver_plugin.solve(s,
-                                             **solve_keyword_args,
-                                             load_solutions=False)
+            with tee_to_log(logger, logging.DEBUG):
+                results = s._solver_plugin.solve(s,
+                                                 **solve_keyword_args,
+                                                 load_solutions=False)
             solver_exception = None
         except Exception as e:
             results = None
@@ -278,8 +279,7 @@ class SPOpt(SPBase):
         pyomo_solve_times = list()
         for k,s in s_source.items():
             logger.debug(f"  in loop solve_loop {k=}, rank={self.cylinder_rank}")
-            if tee:
-                logger.info(f"Tee solve for {k} on global rank {self.global_rank}")
+            logger.info(f"Tee solve for {k} on global rank {self.global_rank} = {tee}")
             pyomo_solve_times.append(self.solve_one(solver_options, k, s,
                                               dtiming=dtiming,
                                               verbose=verbose,

@@ -84,10 +84,11 @@ class CrossScenarioExtension(Extension):
             cached_ph_obj[k] = phobj
             s._mpisppy_model.EF_Obj.activate()
 
-        teeme = (
-            "tee-rank0-solves" in opt.options
-             and opt.options["tee-rank0-solves"]
-        )
+        teeme = False
+        if "tee-rank0-solves" in opt.options and opt.cylinder_rank == 0:
+            teeme = self.options['tee-rank0-solves']
+        if "tee-all-solves" in opt.options:
+            teeme = teeme or opt.options['tee-all-solves']
         opt.solve_loop(
                 solver_options=opt.current_solver_options,
                 dtiming=opt.options["display_timing"],

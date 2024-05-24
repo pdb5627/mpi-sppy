@@ -152,8 +152,7 @@ class Xhat_Eval(mpisppy.spopt.SPOpt):
             self.objs_dict={}
         
         for k,s in s_source.items():
-            if tee:
-                logger.info(f"Tee solve for {k} on global rank {self.global_rank}")
+            logger.info(f"Tee solve for {k} on global rank {self.global_rank} = {tee}")
             logger.debug(f"  in loop solve_loop k={k}, rank={self.cylinder_rank}")
 
             pyomo_solve_time = self.solve_one(solver_options, k, s,
@@ -243,10 +242,11 @@ class Xhat_Eval(mpisppy.spopt.SPOpt):
 
         solver_options = self.options["solver_options"] if "solver_options" in self.options else None
         k = scenario_name
+        teeme = solver_options.get("tee", False) if solver_options else False
         pyomo_solve_time = self.solve_one(solver_options,k, s,
                                           dtiming=False,
                                           verbose=self.verbose,
-                                          tee=False,
+                                          tee=teeme,
                                           gripe=True,
                                           compute_val_at_nonant=True
                                           )
@@ -274,10 +274,11 @@ class Xhat_Eval(mpisppy.spopt.SPOpt):
 
         solver_options = self.options["solver_options"] if "solver_options" in self.options else None
         
+        teeme = solver_options.get("tee", False) if solver_options else False
         self.solve_loop(solver_options=solver_options,
                         use_scenarios_not_subproblems=True,
                         gripe=True, 
-                        tee=False,
+                        tee=teeme,
                         verbose=self.verbose,
                         compute_val_at_nonant=True
                         )

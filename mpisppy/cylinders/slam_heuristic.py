@@ -44,6 +44,8 @@ class _SlamHeuristic(spoke.InnerBoundNonantSpoke):
         self.tee = False
         if "tee-rank0-solves" in self.opt.options:
             self.tee = self.opt.options['tee-rank0-solves']
+        if "tee-all-solves" in self.opt.options:
+            teeme = teeme or self.opt.options['tee-all-solves']
 
         self.verbose = verbose
 

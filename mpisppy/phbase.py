@@ -476,10 +476,13 @@ class PHBase(mpisppy.spopt.SPOpt):
 
         # If dis_prox=True, they are enabled at the end, and Ebound returns
         # the incorrect value (unless you explicitly disable them again)
+        teeme = solver_options.get("tee", False) if solver_options else False
+        logger.info(f"Tee solve for post_solve_bounds() on global rank {self.global_rank} = {teeme}")
+        logger.info(f"{solver_options=}")
         self.solve_loop(solver_options=solver_options,
                         dis_prox=False, # Important
                         gripe=True,
-                        tee=False,
+                        tee=teeme,
                         verbose=verbose)
 
         bound = self.Ebound(verbose)
@@ -791,10 +794,11 @@ class PHBase(mpisppy.spopt.SPOpt):
         global_toc("Creating solvers")
         self._create_solvers()
 
-        teeme = ("tee-rank0-solves" in self.options
-                 and self.options['tee-rank0-solves']
-                 and self.cylinder_rank == 0
-                 )
+        teeme = False
+        if "tee-rank0-solves" in self.options and self.cylinder_rank == 0:
+            teeme = self.options['tee-rank0-solves']
+        if "tee-all-solves" in self.options:
+            teeme = teeme or self.options['tee-all-solves']
 
         if self.options["verbose"]:
             logger.debug(f"About to call PH Iter0 solve loop on rank={self.cylinder_rank}")
@@ -928,11 +932,12 @@ class PHBase(mpisppy.spopt.SPOpt):
                     global_toc("Convergence metric=%f dropped below user-supplied threshold=%f" % (self.conv, self.options["convthresh"]), self.cylinder_rank == 0)
                     break
 
-            teeme = (
-                "tee-rank0-solves" in self.options
-                 and self.options["tee-rank0-solves"]
-                and self.cylinder_rank == 0
-            )
+            teeme = False
+            if "tee-rank0-solves" in self.options and self.cylinder_rank == 0:
+                teeme = self.options['tee-rank0-solves']
+            if "tee-all-solves" in self.options:
+                teeme = teeme or self.options['tee-all-solves']
+
             self.solve_loop(
                 solver_options=self.current_solver_options,
                 dtiming=dtiming,

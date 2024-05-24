@@ -29,6 +29,8 @@ class LagrangianOuterBound(mpisppy.cylinders.spoke.OuterBoundWSpoke):
         teeme = False
         if "tee-rank0-solves" in self.opt.options:
             teeme = self.opt.options['tee-rank0-solves']
+        if "tee-all-solves" in self.opt.options:
+            teeme = teeme or self.opt.options['tee-all-solves']
 
         self.opt.solve_loop(
             solver_options=self.opt.current_solver_options,

@@ -26,6 +26,20 @@ from pyomo.opt import SolutionStatus, TerminationCondition
 from mpisppy import global_toc
 
 def not_good_enough_results(results):
+    not_good_termination_conditions = {
+        TerminationCondition.infeasible,
+        TerminationCondition.infeasibleOrUnbounded,
+        TerminationCondition.unbounded
+    }
+    logger.debug(f"Checking for good enough results")
+    if results is None:
+        logger.debug(f"Not good enough: results is None")
+    elif len(results.solution) == 0:
+        logger.debug(f"Not good enough results: len(results.solution) == 0")
+    elif results.solver.termination_condition in not_good_termination_conditions:
+        logger.debug(f"Not good enough results: termination_condition={results.solver.termination_condition}")
+    else:
+        logger.debug(f"Good enough results. termination_condition={results.solver.termination_condition}")
     return (results is None) or (len(results.solution) == 0) or \
         (results.solution(0).status == SolutionStatus.infeasible) or \
         (results.solver.termination_condition == TerminationCondition.infeasible) or \

@@ -65,6 +65,8 @@ class PhOuterBound(mpisppy.cylinders.spoke.OuterBoundSpoke):
         teeme = False
         if "tee-rank0-solves" in self.opt.options and self.opt.cylinder_rank == 0:
             teeme = self.opt.options['tee-rank0-solves']
+        if "tee-all-solves" in self.opt.options:
+            teeme = teeme or self.opt.options['tee-all-solves']
 
         self.opt.solve_loop(
             solver_options=self.opt.current_solver_options,
@@ -80,6 +82,8 @@ class PhOuterBound(mpisppy.cylinders.spoke.OuterBoundSpoke):
         teeme = False
         if "tee-rank0-solves" in self.opt.options and self.opt.cylinder_rank == 0:
             teeme = self.opt.options['tee-rank0-solves']
+        if "tee-all-solves" in self.opt.options:
+            teeme = teeme or self.opt.options['tee-all-solves']
         self.opt.solve_loop(
             solver_options=self.opt.current_solver_options,
             dtiming=False,

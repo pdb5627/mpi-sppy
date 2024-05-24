@@ -4,6 +4,7 @@ import mpisppy.spbase
 import pyomo.environ as pyo
 import logging
 import mpisppy.utils.sputils as sputils
+from mpisppy.log import tee_to_log
 
 logger = logging.getLogger("mpisppy.ef")
 
@@ -84,7 +85,8 @@ class ExtensiveForm(mpisppy.spbase.SPBase):
         if solver_options is not None:
             for (opt, value) in solver_options.items():
                 self.solver.options[opt] = value
-        results = self.solver.solve(self.ef, tee=tee, load_solutions=False)
+        with tee_to_log(logger, logging.DEBUG):
+            results = self.solver.solve(self.ef, tee=tee, load_solutions=False)
         if len(results.solution) > 0:
             if sputils.is_persistent(self.solver):
                 self.solver.load_vars()

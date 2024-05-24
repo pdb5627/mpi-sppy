@@ -948,9 +948,11 @@ class APH(ph_base.PHBase):
             if have_extensions:
                 self.extobject.miditer()
             
-            teeme = ("tee-rank0-solves" in self.options) \
-                 and (self.options["tee-rank0-solves"] == True
-                      and self.cylinder_rank == 0)
+            teeme = False
+            if "tee-rank0-solves" in self.options and self.cylinder_rank == 0:
+                teeme = self.options['tee-rank0-solves']
+            if "tee-all-solves" in self.options:
+                teeme = teeme or self.options['tee-all-solves']
             # Let the solve loop deal with persistent solvers & signal handling
             # Aug2020 switch to a partial loop xxxxx maybe that is enough.....
             # Aug2020 ... at least you would get dispatch

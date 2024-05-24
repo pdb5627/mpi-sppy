@@ -62,6 +62,7 @@ import logging.config
 import logging
 import warnings
 import yaml
+from pyomo.common.tee import capture_output
 
 from mpisppy.MPI import COMM_WORLD
 
@@ -180,3 +181,41 @@ def load_config(configfile: Union[Path, str], logfile_dir: Optional[Union[Path, 
 
     # Configure logging using the loaded document
     logging.config.dictConfig(config)
+
+
+class StreamToLogger(object):
+    """
+    Fake file-like stream object that redirects writes to a logger instance.
+    """
+
+    def __init__(self, logger, log_level=logging.INFO, default_output=None):
+        self.logger = logger
+        self.log_level = log_level
+        self.default_output = default_output
+        self.linebuf = ''
+
+    def write(self, buf):
+        if self.default_output:
+            self.default_output.write(buf)
+        if buf != '':
+            self.linebuf += buf
+        *lines, self.linebuf = self.linebuf.split('\n')
+        for l in lines:
+            if l != '':
+                self.logger.log(self.log_level, l)
+
+    def flush(self):
+        if self.default_output:
+            self.default_output.flush()
+        for buf in self.linebuf.split('\n'):
+            if buf != '':
+                self.logger.log(self.log_level, buf.rstrip())
+        self.linebuf = ''
+
+
+def tee_to_log(logger, log_level=logging.INFO):
+    """
+    Returns a context manager to capture the tee output from a solver and redirect it to a
+    given logger at the specified log_level (INFO by default)
+    """
+    return capture_output(StreamToLogger(logger, log_level))

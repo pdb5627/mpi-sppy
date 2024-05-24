@@ -11,6 +11,7 @@ import pyomo.environ as pyo
 import mpisppy.extensions.extension
 import mpisppy.utils.wxbarutils as wxbarutils
 import mpisppy.utils.sputils as sputils
+from mpisppy.log import tee_to_log
 
 
 logger = logging.getLogger(__name__)
@@ -184,9 +185,11 @@ class XhatBase(mpisppy.extensions.extension.Extension):
                 solver = pyo.SolverFactory(stage2EFsolvern)
                 if 'persistent' in stage2EFsolvern:
                     solver.set_instance(self._EFs[ndn2], symbolic_solver_labels=True)
-                    results = solver.solve(tee=Tee)
+                    with tee_to_log(logger, logging.DEBUG):
+                        results = solver.solve(tee=Tee)
                 else:
-                    results = solver.solve(self._EFs[ndn2], tee=Tee, symbolic_solver_labels=True,)
+                    with tee_to_log(logger, logging.DEBUG):
+                        results = solver.solve(self._EFs[ndn2], tee=Tee, symbolic_solver_labels=True,)
 
                 # restore objectives so Ebojective will work
                 for s in sdict.values():
@@ -218,10 +221,11 @@ class XhatBase(mpisppy.extensions.extension.Extension):
         self.opt._fix_nonants(xhats)  # (BTW: for all local scenarios)
 
         # NOTE: for APH we may need disable_pyomo_signal_handling
-        self.opt.solve_loop(solver_options=sopt,
-                           #dis_W=True, dis_prox=True,
-                           verbose=verbose,
-                           tee=Tee)
+        with tee_to_log(logger, logging.DEBUG):
+            self.opt.solve_loop(solver_options=sopt,
+                               #dis_W=True, dis_prox=True,
+                               verbose=verbose,
+                               tee=Tee)
 
         infeasP = self.opt.infeas_prob()
         if infeasP != 0.:
